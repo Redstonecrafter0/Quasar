@@ -1,0 +1,18 @@
+[versions]
+lwjgl = "3.3.2"
+kotlin = "1.9.23"
+joml = "1.10.5"
+
+[libraries]
+lwjgl-core = { module = "org.lwjgl:lwjgl", version.ref = "lwjgl" }
+lwjgl-vulkan = { module = "org.lwjgl:lwjgl-vulkan", version.ref = "lwjgl" }
+lwjgl-shaderc =  { module = "org.lwjgl:lwjgl-shaderc", version.ref = "lwjgl" }
+lwjgl-glfw = { module = "org.lwjgl:lwjgl-glfw", version.ref = "lwjgl" }
+lwjgl-jemalloc = { module = "org.lwjgl:lwjgl-jemalloc", version.ref = "lwjgl" }
+joml = { module = "org.joml:joml", version.ref = "joml" }
+
+[bundles]
+lwjgl = [ "lwjgl-core", "lwjgl-vulkan", "lwjgl-shaderc", "lwjgl-glfw", "lwjgl-jemalloc" ]
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
