@@ -7,7 +7,7 @@ import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK12.*
 import java.io.Closeable
 
-class VulkanLogicalDevice(instance: VulkanInstance, physicalDevice: VulkanPhysicalDevice): Closeable {
+class VulkanLogicalDevice(instance: VulkanInstance, val physicalDevice: VulkanPhysicalDevice): Closeable {
 
     val device: VkDevice
     val queues: List<VkQueue>

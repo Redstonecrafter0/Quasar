@@ -6,7 +6,6 @@ import org.lwjgl.vulkan.VkComponentMapping
 import org.lwjgl.vulkan.VkImageSubresourceRange
 import org.lwjgl.vulkan.VkImageViewCreateInfo
 import java.io.Closeable
-import java.nio.LongBuffer
 
 class VulkanSwapChainImageViews(swapChain: VulkanSwapChain, private val device: VulkanLogicalDevice): Closeable {
 

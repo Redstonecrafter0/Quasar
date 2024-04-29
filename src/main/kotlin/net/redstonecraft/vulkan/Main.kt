@@ -13,6 +13,9 @@ fun main() {
 
     val compiler = GLSLCompiler(ResourceVFS("/shaders"))
 
+    if (glfwPlatformSupported(GLFW_PLATFORM_WAYLAND)) {
+//        glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND)
+    }
     if (!glfwInit()) {
         exitProcess(-1)
     }

@@ -42,7 +42,7 @@ class VulkanPhysicalDeviceSwapChainSupport(private val instance: VulkanInstance,
 
             presentModes = (0 until pPresentModes.capacity()).map { pPresentModes.get(it) }
 
-            extent = if (capabilities.currentExtent().width() != Int.MAX_VALUE) {
+            extent = if (capabilities.currentExtent().width() != Int.MAX_VALUE && capabilities.currentExtent().width() != -1) {
                 capabilities.currentExtent()
             } else {
                 val width = stack.callocInt(1)
