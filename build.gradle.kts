@@ -9,7 +9,7 @@ repositories {
     mavenCentral()
 }
 
-val natives = "natives-windows"
+val natives = "natives-${if (System.getProperty("os.name").equals("linux", ignoreCase = true)) "linux" else "windows"}"
 
 dependencies {
     implementation(libs.bundles.lwjgl)
