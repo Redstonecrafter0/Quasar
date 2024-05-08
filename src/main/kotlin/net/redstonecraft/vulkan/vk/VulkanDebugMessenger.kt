@@ -46,7 +46,7 @@ class VulkanDebugMessenger(private val instance: VulkanInstance): Closeable {
                     VK_FALSE
                 }
             val pDebugMessenger = stack.callocLong(1)
-            val ret = vkCreateDebugUtilsMessengerEXT(instance.instance, createInfo, null, pDebugMessenger)
+            val ret = vkCreateDebugUtilsMessengerEXT(instance.handle, createInfo, null, pDebugMessenger)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateDebugUtilsMessengerEXT failed", ret)
             }
@@ -55,7 +55,7 @@ class VulkanDebugMessenger(private val instance: VulkanInstance): Closeable {
     }
 
     override fun close() {
-        vkDestroyDebugUtilsMessengerEXT(instance.instance, debugMessenger, null)
+        vkDestroyDebugUtilsMessengerEXT(instance.handle, debugMessenger, null)
     }
 
 }

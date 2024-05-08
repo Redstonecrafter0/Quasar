@@ -5,37 +5,34 @@ import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkQueueFamilyProperties
 
-class VulkanQueueFamilyIndices(device: VulkanPhysicalDevice, surface: VulkanSurface) {
+class VulkanQueueFamilyIndices internal constructor(device: VulkanPhysicalDevice, private val surface: VulkanSurface?) {
 
-    val graphicsFamily: Int
-        get() = _graphicsFamily!!
-    val presentFamily: Int
-        get() = _presentFamily!!
+    var graphicsFamily: Int? = null
+        private set
+    var presentFamily: Int? = null
+        private set
 
     val isValid: Boolean
-        get() = _graphicsFamily != null && _presentFamily != null
-
-    private var _graphicsFamily: Int? = null
-    private var _presentFamily: Int? = null
+        get() = this.graphicsFamily != null && (surface == null || this.presentFamily != null)
 
     init {
         MemoryStack.stackPush().use { stack ->
             val queueFamilyCount = stack.callocInt(1)
-            vkGetPhysicalDeviceQueueFamilyProperties(device.device, queueFamilyCount, null)
+            vkGetPhysicalDeviceQueueFamilyProperties(device.handle, queueFamilyCount, null)
             val queueFamilies = VkQueueFamilyProperties.calloc(queueFamilyCount.get(0), stack)
-            vkGetPhysicalDeviceQueueFamilyProperties(device.device, queueFamilyCount, queueFamilies)
+            vkGetPhysicalDeviceQueueFamilyProperties(device.handle, queueFamilyCount, queueFamilies)
 
             for (i in 0 until queueFamilies.capacity()) {
                 val cQueueFamily = queueFamilies.get(i)
                 val flags = cQueueFamily.queueFlags()
-                if (_graphicsFamily == null && ((flags and VK_QUEUE_GRAPHICS_BIT) != 0)) {
-                    _graphicsFamily = i
+                if (this.graphicsFamily == null && ((flags and VK_QUEUE_GRAPHICS_BIT) != 0)) {
+                    this.graphicsFamily = i
                 }
-                if (_presentFamily == null) {
+                if (surface != null && this.presentFamily == null) {
                     val pPresentSupport = stack.callocInt(1)
-                    vkGetPhysicalDeviceSurfaceSupportKHR(device.device, i, surface.surface, pPresentSupport)
+                    vkGetPhysicalDeviceSurfaceSupportKHR(device.handle, i, surface.handle, pPresentSupport)
                     if (pPresentSupport.get(0) != 0) {
-                        _presentFamily = i
+                        this.presentFamily = i
                     }
                 }
             }

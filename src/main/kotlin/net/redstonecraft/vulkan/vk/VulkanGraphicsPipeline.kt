@@ -27,18 +27,9 @@ class VulkanGraphicsPipeline(
 
     init {
         MemoryStack.stackPush().use { stack ->
-            val pName = stack.UTF8("main")
-            val vertShaderStageInfo = VkPipelineShaderStageCreateInfo.calloc(stack).`sType$Default`()
-                .stage(VK_SHADER_STAGE_VERTEX_BIT)
-                .module(vertexShader.shaderModule)
-                .pName(pName)
-            val fragShaderStageInfo = VkPipelineShaderStageCreateInfo.calloc(stack).`sType$Default`()
-                .stage(VK_SHADER_STAGE_FRAGMENT_BIT)
-                .module(fragmentShader.shaderModule)
-                .pName(pName)
             val stages = VkPipelineShaderStageCreateInfo.calloc(2, stack)
-                .put(vertShaderStageInfo)
-                .put(fragShaderStageInfo)
+                .put(vertexShader.getShaderStageCreateInfo(stack))
+                .put(fragmentShader.getShaderStageCreateInfo(stack))
                 .flip()
             val dynamicStates = stack.callocInt(2)
                 .put(VK_DYNAMIC_STATE_VIEWPORT)
@@ -46,7 +37,7 @@ class VulkanGraphicsPipeline(
                 .flip()
             val dynamicState = VkPipelineDynamicStateCreateInfo.calloc(stack).`sType$Default`()
                 .pDynamicStates(dynamicStates)
-            val vertexInputInfo = VkPipelineVertexInputStateCreateInfo.calloc(stack).`sType$Default`()
+            val vertexInputInfo = VkPipelineVertexInputStateCreateInfo.calloc(stack).`sType$Default`() // TODO: add options when far enough in the tutorial
                 .pVertexBindingDescriptions(null)
                 .pVertexAttributeDescriptions(null)
             val inputAssembly = VkPipelineInputAssemblyStateCreateInfo.calloc(stack).`sType$Default`()
@@ -55,8 +46,8 @@ class VulkanGraphicsPipeline(
             val viewport = VkViewport.calloc(stack)
                 .x(0F)
                 .y(0F)
-                .width(swapChain.swapChainExtent.width().toFloat())
-                .height(swapChain.swapChainExtent.height().toFloat())
+                .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width().toFloat())
+                .height(swapChain.device.physicalDevice.surfaceCapabilities.extent.height().toFloat())
                 .minDepth(0F)
                 .maxDepth(1F)
             val scissorOffset = VkOffset2D.calloc(stack)
@@ -64,7 +55,7 @@ class VulkanGraphicsPipeline(
                 .y(0)
             val scissor = VkRect2D.calloc(stack)
                 .offset(scissorOffset)
-                .extent(swapChain.swapChainExtent)
+                .extent(swapChain.device.physicalDevice.surfaceCapabilities.extent)
             val viewportState = VkPipelineViewportStateCreateInfo.calloc(stack).`sType$Default`()
                 .viewportCount(1)
                 .scissorCount(1)
@@ -79,7 +70,7 @@ class VulkanGraphicsPipeline(
                 .depthBiasConstantFactor(0F)
                 .depthBiasClamp(0F)
                 .depthBiasSlopeFactor(0F)
-            val multiSampling = VkPipelineMultisampleStateCreateInfo.calloc(stack).`sType$Default`()
+            val multiSampling = VkPipelineMultisampleStateCreateInfo.calloc(stack).`sType$Default`() // TODO: add options when far enough in the tutorial
                 .sampleShadingEnable(false)
                 .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT)
                 .minSampleShading(1F)
@@ -108,7 +99,7 @@ class VulkanGraphicsPipeline(
                 .pSetLayouts(null)
                 .pPushConstantRanges(null)
             val pPipelineLayout = stack.callocLong(1)
-            val ret = vkCreatePipelineLayout(device.device, pipelineLayoutInfo, null, pPipelineLayout)
+            val ret = vkCreatePipelineLayout(device.handle, pipelineLayoutInfo, null, pPipelineLayout)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreatePipelineLayout failed", ret)
             }
@@ -134,7 +125,7 @@ class VulkanGraphicsPipeline(
                 .put(pipelineInfo)
                 .flip()
             val pGraphicsPipeline = stack.callocLong(1)
-            val ret1 = vkCreateGraphicsPipelines(device.device, VK_NULL_HANDLE, pipelineInfos, null, pGraphicsPipeline)
+            val ret1 = vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, pipelineInfos, null, pGraphicsPipeline)
             if (ret1 != VK_SUCCESS) {
                 throw VulkanException("vkCreateGraphicsPipelines failed", ret1)
             }
@@ -143,8 +134,8 @@ class VulkanGraphicsPipeline(
     }
 
     override fun close() {
-        vkDestroyPipeline(device.device, graphicsPipeline, null)
-        vkDestroyPipelineLayout(device.device, pipelineLayout, null)
+        vkDestroyPipeline(device.handle, graphicsPipeline, null)
+        vkDestroyPipelineLayout(device.handle, pipelineLayout, null)
         renderPass.close()
         vertexShader.close()
         fragmentShader.close()

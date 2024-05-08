@@ -13,7 +13,7 @@ class VulkanRenderPass(val device: VulkanLogicalDevice, val swapChain: VulkanSwa
     init {
         MemoryStack.stackPush().use { stack ->
             val colorAttachment = VkAttachmentDescription.calloc(stack)
-                .format(swapChain.swapChainImageFormat.format())
+                .format(swapChain.device.physicalDevice.surfaceFormat!!.format)
                 .samples(VK_SAMPLE_COUNT_1_BIT)
                 .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
                 .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
@@ -39,7 +39,7 @@ class VulkanRenderPass(val device: VulkanLogicalDevice, val swapChain: VulkanSwa
                 .pAttachments(colorAttachments)
                 .pSubpasses(subPasses)
             val pRenderPass = stack.callocLong(1)
-            val ret = vkCreateRenderPass(device.device, renderPassInfo, null, pRenderPass)
+            val ret = vkCreateRenderPass(device.handle, renderPassInfo, null, pRenderPass)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateRenderPass failed", ret)
             }
@@ -48,7 +48,7 @@ class VulkanRenderPass(val device: VulkanLogicalDevice, val swapChain: VulkanSwa
     }
 
     override fun close() {
-        vkDestroyRenderPass(device.device, renderPass, null)
+        vkDestroyRenderPass(device.handle, renderPass, null)
     }
 
 }

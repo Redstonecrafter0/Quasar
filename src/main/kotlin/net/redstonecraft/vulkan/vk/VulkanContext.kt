@@ -17,30 +17,37 @@ class VulkanContext(
     vSync: Boolean = false,
     enableValidation: Boolean = true,
     forceRenderAllPixels: Boolean = true,
-    extensions: List<String> = listOf(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
+    deviceExtensions: List<String> = listOf(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 ): Closeable {
 
-    val instance = VulkanInstance(appName, appVersion, engineName, engineVersion, vSync, enableValidation, extensions)
-    val debugMessenger = if (enableValidation) VulkanDebugMessenger(instance) else null
-    val surface = VulkanSurface(instance, window)
-    val physicalDevices = VulkanPhysicalDevices(instance, surface, window)
-    val physicalDevice = physicalDevices.pickDevice()
-    val device = VulkanLogicalDevice(instance, physicalDevice)
-    val swapChain = VulkanSwapChain(physicalDevice.swapChainSupport, device, surface, physicalDevice.queueFamilyIndices, forceRenderAllPixels)
-    val swapChainImageViews = VulkanSwapChainImageViews(swapChain, device)
+    val instance = VulkanInstance.build {
+        this.appName = appName
+        this.appVersion = appVersion
+        this.engineName = engineName
+        this.engineVersion = engineVersion
+        this.vSync = vSync
+        this.debug = enableValidation
+        this.extensions = emptyList()
+    }
+    val surface = instance.buildSurface {
+        this.window = window
+    }
+    val physicalDevice = instance.getBestPhysicalDevice(surface, deviceExtensions.toSet())
+    val device = physicalDevice.buildLogicalDevice()
+    val swapChain = device.buildSwapChain {
+        this.forceRenderAllPixels = forceRenderAllPixels
+    }
+    val renderPass = swapChain.buildRenderPass()
 
     val graphicsPipeline = VulkanGraphicsPipeline(device, swapChain, shaderCompiler, shaderPath, VulkanPrimitive.TRIANGLE, VulkanCulling.OFF)
 
     override fun close() {
         shaderCompiler.close()
         graphicsPipeline.close()
-        swapChainImageViews.close()
         swapChain.close()
         device.close()
         surface.close()
         physicalDevice.close()
-        physicalDevices.close()
-        debugMessenger?.close()
         instance.close()
     }
 

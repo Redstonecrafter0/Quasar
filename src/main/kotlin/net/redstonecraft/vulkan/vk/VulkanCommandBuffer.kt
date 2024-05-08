@@ -16,11 +16,11 @@ class VulkanCommandBuffer(commandPool: VulkanCommandPool, device: VulkanLogicalD
                 .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
                 .commandBufferCount(1)
             val pCommandBuffer = stack.callocPointer(1)
-            val ret = vkAllocateCommandBuffers(device.device, allocInfo, pCommandBuffer)
+            val ret = vkAllocateCommandBuffers(device.handle, allocInfo, pCommandBuffer)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkAllocateCommandBuffers failed", ret)
             }
-            commandBuffer = VkCommandBuffer(pCommandBuffer.get(0), device.device)
+            commandBuffer = VkCommandBuffer(pCommandBuffer.get(0), device.handle)
         }
     }
 

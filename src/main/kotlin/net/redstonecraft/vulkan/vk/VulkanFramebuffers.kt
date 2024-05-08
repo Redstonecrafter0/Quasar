@@ -5,7 +5,7 @@ import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkFramebufferCreateInfo
 import java.io.Closeable
 
-class VulkanFramebuffers(val device: VulkanLogicalDevice, swapChain: VulkanSwapChain, swapChainImageViews: VulkanSwapChainImageViews, renderPass: VulkanRenderPass): Closeable {
+class VulkanFramebuffers(val device: VulkanLogicalDevice, swapChain: VulkanSwapChain, swapChainImageViews: VulkanImageView, renderPass: VulkanRenderPass): Closeable {
 
     val framebuffers = mutableListOf<Long>()
 
@@ -19,11 +19,11 @@ class VulkanFramebuffers(val device: VulkanLogicalDevice, swapChain: VulkanSwapC
                     .renderPass(renderPass.renderPass)
                     .attachmentCount(attachments.capacity())
                     .pAttachments(attachments)
-                    .width(swapChain.swapChainExtent.width())
-                    .height(swapChain.swapChainExtent.height())
+                    .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width())
+                    .height(swapChain.device.physicalDevice.surfaceCapabilities.extent.height())
                     .layers(1)
                 val pFramebuffer = stack.callocLong(1)
-                val ret = vkCreateFramebuffer(device.device, framebufferInfo, null, pFramebuffer)
+                val ret = vkCreateFramebuffer(device.handle, framebufferInfo, null, pFramebuffer)
                 if (ret != VK_SUCCESS) {
                     throw VulkanException("vkCreateFramebuffer failed", ret)
                 }
@@ -33,7 +33,7 @@ class VulkanFramebuffers(val device: VulkanLogicalDevice, swapChain: VulkanSwapC
     }
 
     override fun close() {
-        framebuffers.forEach { vkDestroyFramebuffer(device.device, it, null) }
+        framebuffers.forEach { vkDestroyFramebuffer(device.handle, it, null) }
     }
 
 }

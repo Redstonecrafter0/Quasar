@@ -1,30 +1,53 @@
 package net.redstonecraft.vulkan.vk
 
+import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.glfw.GLFWVulkan.*
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.EXTDebugUtils.*
+import org.lwjgl.vulkan.EXTSwapchainColorspace.*
 import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkApplicationInfo
 import org.lwjgl.vulkan.VkInstance
 import org.lwjgl.vulkan.VkInstanceCreateInfo
 import org.lwjgl.vulkan.VkLayerProperties
-import java.io.Closeable
 
-class VulkanInstance(
+class VulkanInstance private constructor(
     appName: String,
     appVersion: Triple<Int, Int, Int>,
     engineName: String = "No Engine",
     engineVersion: Triple<Int, Int, Int>,
     val vSync: Boolean,
-    val enableValidation: Boolean,
-    val extensions: List<String>
-): Closeable {
+    val hdr: Boolean,
+    val debug: Boolean,
+    private val extensions: MutableSet<String>
+): IHandle<VkInstance> {
 
     companion object {
-        const val validationLayer = "VK_LAYER_KHRONOS_validation"
+        private const val validationLayer = "VK_LAYER_KHRONOS_validation"
+        fun build(block: Builder.() -> Unit): VulkanInstance {
+            val builder = Builder()
+            builder.block()
+            return builder.build()
+        }
     }
 
-    val instance: VkInstance
+    class Builder internal constructor() {
+        var appName = "Vulkan"
+        var appVersion = Triple(0, 0, 0)
+        var engineName = "No Engine"
+        var engineVersion = Triple(0, 0, 0)
+        var vSync = false
+        var hdr = false
+        var debug = true
+        var extensions = emptyList<String>()
+
+        internal fun build() = VulkanInstance(appName, appVersion, engineName, engineVersion, vSync, hdr, debug, extensions.toMutableSet())
+    }
+
+    override val handle: VkInstance
+    private val debugMessenger: VulkanDebugMessenger?
+    val physicalDevices = lazy {
+    }
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -36,20 +59,25 @@ class VulkanInstance(
                 .pEngineName(pEngineName)
                 .engineVersion(VK_MAKE_VERSION(engineVersion.first, engineVersion.second, engineVersion.third))
                 .apiVersion(VK_API_VERSION_1_2)
+            if (debug) {
+                extensions += VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+            }
+            if (hdr) {
+                extensions += VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME
+            }
             val glfwExtensions = glfwGetRequiredInstanceExtensions()!!
-            val extensions = stack.callocPointer(glfwExtensions.capacity() + if (enableValidation) 1 else 0)
+            val pExtensions = stack.callocPointer(glfwExtensions.capacity() + extensions.size)
             for (i in 0 until glfwExtensions.capacity()) {
-                extensions.put(glfwExtensions.get(i))
+                pExtensions.put(glfwExtensions.get(i))
             }
-            if (enableValidation) {
-                val extension = stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
-                extensions.put(extension)
+            for (i in extensions) {
+                pExtensions.put(stack.UTF8(i))
             }
-            extensions.flip()
+            pExtensions.flip()
             val createInfo = VkInstanceCreateInfo.calloc(stack).`sType$Default`()
                 .pApplicationInfo(appInfo)
-                .ppEnabledExtensionNames(extensions)
-            if (enableValidation) {
+                .ppEnabledExtensionNames(pExtensions)
+            if (debug) {
                 if (!checkValidationLayerSupport(stack)) {
                     throw VulkanException("Asked for $validationLayer but it is not present")
                 }
@@ -64,7 +92,8 @@ class VulkanInstance(
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateInstance failed", ret)
             }
-            instance = VkInstance(pInstance.get(0), createInfo)
+            handle = VkInstance(pInstance.get(0), createInfo)
+            debugMessenger = if (debug) VulkanDebugMessenger(this) else null
         }
     }
     
@@ -82,8 +111,47 @@ class VulkanInstance(
         return false
     }
 
-    override fun close() {
-        vkDestroyInstance(instance, null)
+    fun buildSurface(block: VulkanSurface.Builder.() -> Unit): VulkanSurface {
+        val builder = VulkanSurface.Builder(this)
+        builder.block()
+        return builder.build()
     }
 
+    fun selectPhysicalDevice(surface: VulkanSurface?, deviceExtensions: Set<String> = emptySet(), block: List<VulkanPhysicalDevice>.() -> VulkanPhysicalDevice): VulkanPhysicalDevice {
+        return MemoryStack.stackPush().use { stack ->
+            val deviceCount = stack.callocInt(1)
+            vkEnumeratePhysicalDevices(handle, deviceCount, null)
+            val pDevices = stack.callocPointer(deviceCount.get(0))
+            vkEnumeratePhysicalDevices(handle, deviceCount, pDevices)
+
+            val devices = (0 until deviceCount.get(0)).map {
+                VulkanPhysicalDevice(this, surface, pDevices.get(it), deviceExtensions.toList())
+            }.filter {
+                val valid = it.isValid
+                if (!valid) it.close()
+                valid
+            }
+            val selectedDevice = devices.block()
+            (devices - selectedDevice).forEach { it.close() }
+            return selectedDevice
+        }
+    }
+
+    fun getBestPhysicalDevice(surface: VulkanSurface?, deviceExtensions: Set<String> = emptySet()) = selectPhysicalDevice(surface, deviceExtensions) { pickBestDevice() }
+
+    override fun close() {
+        debugMessenger?.close()
+        vkDestroyInstance(handle, null)
+    }
+
+}
+
+fun List<VulkanPhysicalDevice>.pickBestDevice(): VulkanPhysicalDevice {
+    return groupBy { it.isDiscrete }
+        .mapValues { it.value.sortedByDescending { i -> i.memory } }
+        .asSequence()
+        .sortedBy { if (it.key) 0 else 1 }
+        .map { it.value }
+        .flatten()
+        .first()
 }

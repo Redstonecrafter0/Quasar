@@ -1,38 +1,40 @@
 package net.redstonecraft.vulkan.vk
 
+import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.*
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK12.*
-import java.io.Closeable
 
-class VulkanLogicalDevice(instance: VulkanInstance, val physicalDevice: VulkanPhysicalDevice): Closeable {
+class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysicalDevice): IHandle<VkDevice> {
 
-    val device: VkDevice
+    override val handle: VkDevice
     val queues: List<VkQueue>
 
     init {
         MemoryStack.stackPush().use { stack ->
-            val queueFamilyList = listOf(physicalDevice.queueFamilyIndices.graphicsFamily, physicalDevice.queueFamilyIndices.presentFamily)
-            val queueFamilySet = queueFamilyList.toSet()
+            val queueFamilySet = setOfNotNull(
+                physicalDevice.queueFamilyIndices.graphicsFamily,
+                physicalDevice.queueFamilyIndices.presentFamily
+            )
             val queueCreateInfos = buildQueueCreateInfo(queueFamilySet, stack)
-            val pExtensionNames = buildExtensionNames(stack, instance.extensions)
+            val pExtensionNames = buildExtensionNames(stack, physicalDevice.extensions)
             val deviceFeatures = VkPhysicalDeviceFeatures.calloc(stack)
             val createInfo = VkDeviceCreateInfo.calloc(stack).`sType$Default`()
                 .pQueueCreateInfos(queueCreateInfos)
                 .pEnabledFeatures(deviceFeatures)
                 .ppEnabledExtensionNames(pExtensionNames)
             val pDevice = stack.callocPointer(1)
-            val ret = vkCreateDevice(physicalDevice.device, createInfo, null, pDevice)
+            val ret = vkCreateDevice(physicalDevice.handle, createInfo, null, pDevice)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateDevice failed", ret)
             }
-            device = VkDevice(pDevice.get(0), physicalDevice.device, createInfo)
+            handle = VkDevice(pDevice.get(0), physicalDevice.handle, createInfo)
             queues = queueFamilySet.map {
                 val pQueue = stack.callocPointer(1)
-                vkGetDeviceQueue(device, it, 0, pQueue)
-                VkQueue(pQueue.get(0), device)
+                vkGetDeviceQueue(handle, it, 0, pQueue)
+                VkQueue(pQueue.get(0), handle)
             }
         }
     }
@@ -61,8 +63,16 @@ class VulkanLogicalDevice(instance: VulkanInstance, val physicalDevice: VulkanPh
         return pExtensionNames
     }
 
+    fun buildSwapChain(block: VulkanSwapChain.Builder.() -> Unit): VulkanSwapChain {
+        val builder = VulkanSwapChain.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
+    fun buildImageView(image: Long, format: Int) = VulkanImageView.Builder(this, image, format)
+
     override fun close() {
-        vkDestroyDevice(device, null)
+        vkDestroyDevice(handle, null)
     }
 
 }

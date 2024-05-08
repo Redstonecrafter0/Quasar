@@ -13,9 +13,9 @@ class VulkanCommandPool(val device: VulkanLogicalDevice): Closeable {
         MemoryStack.stackPush().use { stack ->
             val poolInfo = VkCommandPoolCreateInfo.calloc(stack).`sType$Default`()
                 .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-                .queueFamilyIndex(device.physicalDevice.queueFamilyIndices.graphicsFamily)
+                .queueFamilyIndex(device.physicalDevice.queueFamilyIndices.graphicsFamily!!)
             val pCommandPool = stack.callocLong(1)
-            val ret = vkCreateCommandPool(device.device, poolInfo, null, pCommandPool)
+            val ret = vkCreateCommandPool(device.handle, poolInfo, null, pCommandPool)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateCommandPool failed", ret)
             }
@@ -24,7 +24,7 @@ class VulkanCommandPool(val device: VulkanLogicalDevice): Closeable {
     }
 
     override fun close() {
-        vkDestroyCommandPool(device.device, commandPool, null)
+        vkDestroyCommandPool(device.handle, commandPool, null)
     }
 
 }
