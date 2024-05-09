@@ -6,9 +6,17 @@ import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK12.*
 import java.io.Closeable
 
+// TODO: redo in order to allow headless (no swapChainKHR) and be customizable
 class VulkanRenderPass(val device: VulkanLogicalDevice, val swapChain: VulkanSwapChain): Closeable {
 
     val renderPass: Long
+
+    class Builder internal constructor(private val device: VulkanLogicalDevice, private val swapChain: VulkanSwapChain) {
+
+//        var format: Int =
+        
+        fun build() = VulkanRenderPass(device, swapChain)
+    }
 
     init {
         MemoryStack.stackPush().use { stack ->
