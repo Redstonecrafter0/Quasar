@@ -4,26 +4,35 @@ import net.redstonecraft.vulkan.spvc.SPIRVCompiler
 import net.redstonecraft.vulkan.spvc.ShaderType
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
+import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK12.*
-import java.io.Closeable
 
 class VulkanGraphicsPipeline(
-    val device: VulkanLogicalDevice,
     val renderPass: VulkanRenderPass,
     extent: VkExtent2D,
-    shaderCompiler: SPIRVCompiler,
-    shaderPath: String,
+    vertexShader: VulkanVertexShaderModule,
+    fragmentShader: VulkanFragmentShaderModule,
     primitive: VulkanPrimitive,
     culling: VulkanCulling
-): Closeable {
+): IHandle<Long> {
 
-    val vertexShader = VulkanShaderModule(device, shaderCompiler, "${shaderPath.removeSuffix("/")}/vert.glsl", ShaderType.VERTEX)
-    val fragmentShader = VulkanShaderModule(device, shaderCompiler, "${shaderPath.removeSuffix("/")}/frag.glsl", ShaderType.FRAGMENT)
+    class Builder internal constructor(private val renderPass: VulkanRenderPass) {
 
-    val pipelineLayout = VulkanPipelineLayout(device)
-    val graphicsPipeline: Long
+        var extent: VkExtent2D? = null
+        var vertexShader: VulkanVertexShaderModule? = null
+        var fragmentShader: VulkanFragmentShaderModule? = null
+        var primitive: VulkanPrimitive? = null
+        var culling: VulkanCulling? = null
+
+        fun build(): VulkanGraphicsPipeline {
+            return VulkanGraphicsPipeline(renderPass, extent!!, vertexShader!!, fragmentShader!!, primitive!!, culling!!)
+        }
+    }
+
+    val pipelineLayout = VulkanPipelineLayout(renderPass.device)
+    override val handle: Long
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -57,7 +66,7 @@ class VulkanGraphicsPipeline(
                 .y(0)
             val scissor = VkRect2D.calloc(stack)
                 .offset(scissorOffset)
-//                .extent(swapChain.device.physicalDevice.surfaceCapabilities.extent)
+//                .extent(swapChain.renderPass.device.physicalDevice.surfaceCapabilities.extent)
                 .extent(extent)
             val viewportState = VkPipelineViewportStateCreateInfo.calloc(stack).`sType$Default`()
                 .viewportCount(1)
@@ -117,19 +126,17 @@ class VulkanGraphicsPipeline(
                 .put(pipelineInfo)
                 .flip()
             val pGraphicsPipeline = stack.callocLong(1)
-            val ret1 = vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, pipelineInfos, null, pGraphicsPipeline)
+            val ret1 = vkCreateGraphicsPipelines(renderPass.device.handle, VK_NULL_HANDLE, pipelineInfos, null, pGraphicsPipeline)
             if (ret1 != VK_SUCCESS) {
                 throw VulkanException("vkCreateGraphicsPipelines failed", ret1)
             }
-            graphicsPipeline = pGraphicsPipeline.get(0)
+            handle = pGraphicsPipeline.get(0)
         }
     }
 
     override fun close() {
-        vkDestroyPipeline(device.handle, graphicsPipeline, null)
+        vkDestroyPipeline(renderPass.device.handle, handle, null)
         pipelineLayout.close()
-        vertexShader.close()
-        fragmentShader.close()
     }
 
 }

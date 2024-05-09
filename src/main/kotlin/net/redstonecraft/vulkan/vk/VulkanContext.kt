@@ -40,7 +40,16 @@ class VulkanContext(
         format = device.physicalDevice.surfaceFormat!!.format
     }
 
-    val graphicsPipeline = VulkanGraphicsPipeline(device, renderPass, physicalDevice.surfaceCapabilities!!.extent, shaderCompiler, shaderPath, VulkanPrimitive.TRIANGLE, VulkanCulling.OFF)
+    val vertexShader = VulkanVertexShaderModule(renderPass.device, shaderCompiler, "${shaderPath.removeSuffix("/")}/vert.glsl")
+    val fragmentShader = VulkanFragmentShaderModule(renderPass.device, shaderCompiler, "${shaderPath.removeSuffix("/")}/frag.glsl")
+
+    val graphicsPipeline = renderPass.buildGraphicsPipeline {
+        extent = physicalDevice.surfaceCapabilities!!.extent
+        vertexShader = this@VulkanContext.vertexShader
+        fragmentShader = this@VulkanContext.fragmentShader
+        primitive = VulkanPrimitive.TRIANGLE
+        culling = VulkanCulling.OFF
+    }
 
     val swapChain = device.buildSwapChain {
         this.forceRenderAllPixels = forceRenderAllPixels
@@ -48,6 +57,8 @@ class VulkanContext(
     }
 
     override fun close() {
+        vertexShader.close()
+        fragmentShader.close()
         shaderCompiler.close()
         renderPass.close()
         graphicsPipeline.close()

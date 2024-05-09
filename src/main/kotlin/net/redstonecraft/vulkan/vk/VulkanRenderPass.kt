@@ -58,6 +58,12 @@ class VulkanRenderPass(val device: VulkanLogicalDevice, val format: Int): IHandl
         }
     }
 
+    fun buildGraphicsPipeline(block: VulkanGraphicsPipeline.Builder.() -> Unit): VulkanGraphicsPipeline {
+        val builder = VulkanGraphicsPipeline.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
     override fun close() {
         vkDestroyRenderPass(device.handle, handle, null)
     }

@@ -12,7 +12,7 @@ class VulkanCommandBuffer(commandPool: VulkanCommandPool, device: VulkanLogicalD
     init {
         MemoryStack.stackPush().use { stack ->
             val allocInfo = VkCommandBufferAllocateInfo.calloc(stack).`sType$Default`()
-                .commandPool(commandPool.commandPool)
+                .commandPool(commandPool.handle)
                 .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
                 .commandBufferCount(1)
             val pCommandBuffer = stack.callocPointer(1)

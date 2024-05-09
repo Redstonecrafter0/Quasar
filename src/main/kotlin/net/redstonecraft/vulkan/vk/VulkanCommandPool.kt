@@ -1,13 +1,13 @@
 package net.redstonecraft.vulkan.vk
 
+import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo
-import java.io.Closeable
 
-class VulkanCommandPool(val device: VulkanLogicalDevice): Closeable {
+class VulkanCommandPool(val device: VulkanLogicalDevice): IHandle<Long> {
 
-    val commandPool: Long
+    override val handle: Long
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -19,12 +19,12 @@ class VulkanCommandPool(val device: VulkanLogicalDevice): Closeable {
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateCommandPool failed", ret)
             }
-            commandPool = pCommandPool.get(0)
+            handle = pCommandPool.get(0)
         }
     }
 
     override fun close() {
-        vkDestroyCommandPool(device.handle, commandPool, null)
+        vkDestroyCommandPool(device.handle, handle, null)
     }
 
 }
