@@ -11,7 +11,7 @@ import java.io.Closeable
 
 class VulkanGraphicsPipeline(
     val device: VulkanLogicalDevice,
-    swapChain: VulkanSwapChain,
+    extent: VkExtent2D,
     shaderCompiler: SPIRVCompiler,
     shaderPath: String,
     primitive: VulkanPrimitive,
@@ -21,7 +21,7 @@ class VulkanGraphicsPipeline(
     val vertexShader = VulkanShaderModule(device, shaderCompiler, "${shaderPath.removeSuffix("/")}/vert.glsl", ShaderType.VERTEX)
     val fragmentShader = VulkanShaderModule(device, shaderCompiler, "${shaderPath.removeSuffix("/")}/frag.glsl", ShaderType.FRAGMENT)
 
-    val pipelineLayout: Long
+    val pipelineLayout = VulkanPipelineLayout(device)
     val renderPass: VulkanRenderPass
     val graphicsPipeline: Long
 
@@ -46,8 +46,10 @@ class VulkanGraphicsPipeline(
             val viewport = VkViewport.calloc(stack)
                 .x(0F)
                 .y(0F)
-                .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width().toFloat())
-                .height(swapChain.device.physicalDevice.surfaceCapabilities.extent.height().toFloat())
+//                .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width().toFloat())
+//                .height(swapChain.device.physicalDevice.surfaceCapabilities.extent.height().toFloat())
+                .width(extent.width().toFloat())
+                .height(extent.height().toFloat())
                 .minDepth(0F)
                 .maxDepth(1F)
             val scissorOffset = VkOffset2D.calloc(stack)
@@ -55,7 +57,8 @@ class VulkanGraphicsPipeline(
                 .y(0)
             val scissor = VkRect2D.calloc(stack)
                 .offset(scissorOffset)
-                .extent(swapChain.device.physicalDevice.surfaceCapabilities.extent)
+//                .extent(swapChain.device.physicalDevice.surfaceCapabilities.extent)
+                .extent(extent)
             val viewportState = VkPipelineViewportStateCreateInfo.calloc(stack).`sType$Default`()
                 .viewportCount(1)
                 .scissorCount(1)
@@ -94,17 +97,9 @@ class VulkanGraphicsPipeline(
                 .attachmentCount(1)
                 .pAttachments(colorBlendAttachments)
                 .blendConstants(blendConstants)
-            val pipelineLayoutInfo = VkPipelineLayoutCreateInfo.calloc(stack).`sType$Default`()
-                .setLayoutCount(0)
-                .pSetLayouts(null)
-                .pPushConstantRanges(null)
-            val pPipelineLayout = stack.callocLong(1)
-            val ret = vkCreatePipelineLayout(device.handle, pipelineLayoutInfo, null, pPipelineLayout)
-            if (ret != VK_SUCCESS) {
-                throw VulkanException("vkCreatePipelineLayout failed", ret)
+            renderPass = device.buildRenderPass {
+                format = device.physicalDevice.surfaceFormat!!.format
             }
-            pipelineLayout = pPipelineLayout.get(0)
-            renderPass = VulkanRenderPass(device, swapChain)
             val pipelineInfo = VkGraphicsPipelineCreateInfo.calloc(stack).`sType$Default`()
                 .stageCount(stages.capacity())
                 .pStages(stages)
@@ -116,7 +111,7 @@ class VulkanGraphicsPipeline(
                 .pDepthStencilState(null)
                 .pColorBlendState(colorBlending)
                 .pDynamicState(dynamicState)
-                .layout(pipelineLayout)
+                .layout(pipelineLayout.handle)
                 .renderPass(renderPass.renderPass)
                 .subpass(0)
                 .basePipelineHandle(VK_NULL_HANDLE)
@@ -135,7 +130,7 @@ class VulkanGraphicsPipeline(
 
     override fun close() {
         vkDestroyPipeline(device.handle, graphicsPipeline, null)
-        vkDestroyPipelineLayout(device.handle, pipelineLayout, null)
+        pipelineLayout.close()
         renderPass.close()
         vertexShader.close()
         fragmentShader.close()

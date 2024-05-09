@@ -7,21 +7,24 @@ import org.lwjgl.vulkan.VK12.*
 import java.io.Closeable
 
 // TODO: redo in order to allow headless (no swapChainKHR) and be customizable
-class VulkanRenderPass(val device: VulkanLogicalDevice, val swapChain: VulkanSwapChain): Closeable {
+class VulkanRenderPass(val device: VulkanLogicalDevice, val format: Int): Closeable {
 
     val renderPass: Long
 
-    class Builder internal constructor(private val device: VulkanLogicalDevice, private val swapChain: VulkanSwapChain) {
+    class Builder internal constructor(private val device: VulkanLogicalDevice) {
 
-//        var format: Int =
-        
-        fun build() = VulkanRenderPass(device, swapChain)
+        var format: Int? = null
+
+        fun build(): VulkanRenderPass {
+            requireNotNull(format) { "format must not be null" }
+            return VulkanRenderPass(device, format!!)
+        }
     }
 
     init {
         MemoryStack.stackPush().use { stack ->
             val colorAttachment = VkAttachmentDescription.calloc(stack)
-                .format(swapChain.device.physicalDevice.surfaceFormat!!.format)
+                .format(format)
                 .samples(VK_SAMPLE_COUNT_1_BIT)
                 .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
                 .storeOp(VK_ATTACHMENT_STORE_OP_STORE)

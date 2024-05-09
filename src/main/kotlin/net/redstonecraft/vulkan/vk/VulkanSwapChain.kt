@@ -10,17 +10,23 @@ import kotlin.math.min
 
 class VulkanSwapChain internal constructor(
     val device: VulkanLogicalDevice,
-    forceRenderAllPixels: Boolean
+    forceRenderAllPixels: Boolean,
+    renderPass: VulkanRenderPass
 ): IHandle<Long> {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
         var forceRenderAllPixels: Boolean = false
+        var renderPass: VulkanRenderPass? = null
 
-        fun build() = VulkanSwapChain(device, forceRenderAllPixels)
+        fun build(): VulkanSwapChain {
+            requireNotNull(renderPass) { "renderPass must be not null" }
+            return VulkanSwapChain(device, forceRenderAllPixels, renderPass!!)
+        }
     }
 
     override val handle: Long
     val imageViews: List<VulkanImageView>
+    val framebuffers: List<VulkanFramebuffer>
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -85,12 +91,23 @@ class VulkanSwapChain internal constructor(
             vkGetSwapchainImagesKHR(device.handle, handle, pImageCount, images)
 
             imageViews = (0 until images.capacity()).map {
-                device.buildImageView(images.get(it), device.physicalDevice.surfaceFormat.format).build()
+                device.buildImageView {
+                    image = images.get(it)
+                    format = device.physicalDevice.surfaceFormat.format
+                }
+            }
+            framebuffers = imageViews.map {
+                device.buildFramebuffer {
+                    extent = device.physicalDevice.surfaceCapabilities.extent
+                    imageView = it
+                    this.renderPass = renderPass
+                }
             }
         }
     }
 
     override fun close() {
+        framebuffers.forEach { it.close() }
         imageViews.forEach { it.close() }
         vkDestroySwapchainKHR(device.handle, handle, null)
     }

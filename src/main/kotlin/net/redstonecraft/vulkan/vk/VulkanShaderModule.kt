@@ -8,7 +8,7 @@ import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 import org.lwjgl.vulkan.VkShaderModuleCreateInfo
 
-open class VulkanShaderModule(val device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String, type: ShaderType): IHandle<Long> {
+open class VulkanShaderModule(val device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String, private val type: ShaderType): IHandle<Long> {
 
     final override val handle: Long
 
@@ -30,7 +30,7 @@ open class VulkanShaderModule(val device: VulkanLogicalDevice, shaderCompiler: S
     fun getShaderStageCreateInfo(stack: MemoryStack): VkPipelineShaderStageCreateInfo {
         val pName = stack.UTF8("main")
         return VkPipelineShaderStageCreateInfo.calloc(stack).`sType$Default`()
-            .stage(VK_SHADER_STAGE_VERTEX_BIT)
+            .stage(type.stage)
             .module(handle)
             .pName(pName)
     }

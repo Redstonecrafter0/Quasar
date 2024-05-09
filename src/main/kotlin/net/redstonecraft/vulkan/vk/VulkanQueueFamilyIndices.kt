@@ -5,7 +5,7 @@ import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkQueueFamilyProperties
 
-class VulkanQueueFamilyIndices internal constructor(device: VulkanPhysicalDevice, private val surface: VulkanSurface?) {
+class VulkanQueueFamilyIndices internal constructor(physicalDevice: VulkanPhysicalDevice, private val surface: VulkanSurface?) {
 
     var graphicsFamily: Int? = null
         private set
@@ -18,9 +18,9 @@ class VulkanQueueFamilyIndices internal constructor(device: VulkanPhysicalDevice
     init {
         MemoryStack.stackPush().use { stack ->
             val queueFamilyCount = stack.callocInt(1)
-            vkGetPhysicalDeviceQueueFamilyProperties(device.handle, queueFamilyCount, null)
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.handle, queueFamilyCount, null)
             val queueFamilies = VkQueueFamilyProperties.calloc(queueFamilyCount.get(0), stack)
-            vkGetPhysicalDeviceQueueFamilyProperties(device.handle, queueFamilyCount, queueFamilies)
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.handle, queueFamilyCount, queueFamilies)
 
             for (i in 0 until queueFamilies.capacity()) {
                 val cQueueFamily = queueFamilies.get(i)
@@ -30,7 +30,7 @@ class VulkanQueueFamilyIndices internal constructor(device: VulkanPhysicalDevice
                 }
                 if (surface != null && this.presentFamily == null) {
                     val pPresentSupport = stack.callocInt(1)
-                    vkGetPhysicalDeviceSurfaceSupportKHR(device.handle, i, surface.handle, pPresentSupport)
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.handle, i, surface.handle, pPresentSupport)
                     if (pPresentSupport.get(0) != 0) {
                         this.presentFamily = i
                     }

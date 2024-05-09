@@ -9,9 +9,16 @@ import org.lwjgl.vulkan.VkImageViewCreateInfo
 
 class VulkanImageView internal constructor(val device: VulkanLogicalDevice, image: Long, val format: Int): IHandle<Long> {
 
-    class Builder internal constructor(private val device: VulkanLogicalDevice, private val image: Long, private val format: Int) {
+    class Builder internal constructor(private val device: VulkanLogicalDevice) {
 
-        fun build() = VulkanImageView(device, image, format)
+        var image: Long? = null
+        var format: Int? = null
+
+        fun build(): VulkanImageView {
+            requireNotNull(image) { "image must be not null" }
+            requireNotNull(format) { "image must be not null" }
+            return VulkanImageView(device, image!!, format!!)
+        }
     }
 
     override val handle: Long

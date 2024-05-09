@@ -70,12 +70,22 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
     }
 
     fun buildRenderPass(block: VulkanRenderPass.Builder.() -> Unit): VulkanRenderPass {
-        val builder = VulkanRenderPass.Builder(device, this)
+        val builder = VulkanRenderPass.Builder(this)
         builder.block()
         return builder.build()
     }
 
-    fun buildImageView(image: Long, format: Int) = VulkanImageView.Builder(this, image, format)
+    fun buildImageView(block: VulkanImageView.Builder.() -> Unit): VulkanImageView {
+        val builder = VulkanImageView.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
+    fun buildFramebuffer(block: VulkanFramebuffer.Builder.() -> Unit): VulkanFramebuffer {
+        val builder = VulkanFramebuffer.Builder(this)
+        builder.block()
+        return builder.build()
+    }
 
     override fun close() {
         vkDestroyDevice(handle, null)
