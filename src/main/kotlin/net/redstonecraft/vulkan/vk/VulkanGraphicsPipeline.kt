@@ -11,6 +11,7 @@ import java.io.Closeable
 
 class VulkanGraphicsPipeline(
     val device: VulkanLogicalDevice,
+    val renderPass: VulkanRenderPass,
     extent: VkExtent2D,
     shaderCompiler: SPIRVCompiler,
     shaderPath: String,
@@ -22,7 +23,6 @@ class VulkanGraphicsPipeline(
     val fragmentShader = VulkanShaderModule(device, shaderCompiler, "${shaderPath.removeSuffix("/")}/frag.glsl", ShaderType.FRAGMENT)
 
     val pipelineLayout = VulkanPipelineLayout(device)
-    val renderPass: VulkanRenderPass
     val graphicsPipeline: Long
 
     init {
@@ -97,9 +97,6 @@ class VulkanGraphicsPipeline(
                 .attachmentCount(1)
                 .pAttachments(colorBlendAttachments)
                 .blendConstants(blendConstants)
-            renderPass = device.buildRenderPass {
-                format = device.physicalDevice.surfaceFormat!!.format
-            }
             val pipelineInfo = VkGraphicsPipelineCreateInfo.calloc(stack).`sType$Default`()
                 .stageCount(stages.capacity())
                 .pStages(stages)
@@ -112,7 +109,7 @@ class VulkanGraphicsPipeline(
                 .pColorBlendState(colorBlending)
                 .pDynamicState(dynamicState)
                 .layout(pipelineLayout.handle)
-                .renderPass(renderPass.renderPass)
+                .renderPass(renderPass.handle)
                 .subpass(0)
                 .basePipelineHandle(VK_NULL_HANDLE)
                 .basePipelineIndex(-1)
@@ -131,7 +128,6 @@ class VulkanGraphicsPipeline(
     override fun close() {
         vkDestroyPipeline(device.handle, graphicsPipeline, null)
         pipelineLayout.close()
-        renderPass.close()
         vertexShader.close()
         fragmentShader.close()
     }

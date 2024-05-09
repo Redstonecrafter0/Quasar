@@ -30,7 +30,7 @@ class VulkanFramebuffer(val device: VulkanLogicalDevice, extent: VkExtent2D, ima
                 .put(imageView.handle)
                 .flip()
             val framebufferInfo = VkFramebufferCreateInfo.calloc(stack).`sType$Default`()
-                .renderPass(renderPass.renderPass)
+                .renderPass(renderPass.handle)
                 .attachmentCount(attachments.capacity())
                 .pAttachments(attachments)
 //                .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width())

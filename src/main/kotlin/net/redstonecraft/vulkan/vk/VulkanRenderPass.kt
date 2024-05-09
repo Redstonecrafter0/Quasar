@@ -1,15 +1,15 @@
 package net.redstonecraft.vulkan.vk
 
+import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK12.*
-import java.io.Closeable
 
 // TODO: redo in order to allow headless (no swapChainKHR) and be customizable
-class VulkanRenderPass(val device: VulkanLogicalDevice, val format: Int): Closeable {
+class VulkanRenderPass(val device: VulkanLogicalDevice, val format: Int): IHandle<Long> {
 
-    val renderPass: Long
+    override val handle: Long
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
 
@@ -54,12 +54,12 @@ class VulkanRenderPass(val device: VulkanLogicalDevice, val format: Int): Closea
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateRenderPass failed", ret)
             }
-            renderPass = pRenderPass.get(0)
+            handle = pRenderPass.get(0)
         }
     }
 
     override fun close() {
-        vkDestroyRenderPass(device.handle, renderPass, null)
+        vkDestroyRenderPass(device.handle, handle, null)
     }
 
 }

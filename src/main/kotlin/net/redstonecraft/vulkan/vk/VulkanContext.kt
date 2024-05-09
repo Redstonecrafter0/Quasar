@@ -36,7 +36,11 @@ class VulkanContext(
 
     val device = physicalDevice.buildLogicalDevice()
 
-    val graphicsPipeline = VulkanGraphicsPipeline(device, physicalDevice.surfaceCapabilities!!.extent, shaderCompiler, shaderPath, VulkanPrimitive.TRIANGLE, VulkanCulling.OFF)
+    val renderPass = device.buildRenderPass {
+        format = device.physicalDevice.surfaceFormat!!.format
+    }
+
+    val graphicsPipeline = VulkanGraphicsPipeline(device, renderPass, physicalDevice.surfaceCapabilities!!.extent, shaderCompiler, shaderPath, VulkanPrimitive.TRIANGLE, VulkanCulling.OFF)
 
     val swapChain = device.buildSwapChain {
         this.forceRenderAllPixels = forceRenderAllPixels
@@ -45,6 +49,7 @@ class VulkanContext(
 
     override fun close() {
         shaderCompiler.close()
+        renderPass.close()
         graphicsPipeline.close()
         swapChain.close()
         device.close()
