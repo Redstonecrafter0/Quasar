@@ -65,6 +65,25 @@ class VulkanContext(
 
     val commandPool = device.buildCommandPool {  }
 
+    val commandBuffer = commandPool.buildCommandBuffer {  }
+
+    init {
+        val imageIndex = 0
+        commandBuffer.begin()
+            .renderPass(renderPass) {
+                framebuffer = swapChain.framebuffers[imageIndex]
+                extent = physicalDevice.surfaceCapabilities!!.extent
+                graphicsPipeline(graphicsPipeline) {
+                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
+                    scissorExtent = physicalDevice.surfaceCapabilities.extent
+                }
+            }
+            .end()
+    }
+
+    fun drawFrame() {
+    }
+
     override fun close() {
         commandPool.close()
         vertexShader.close()

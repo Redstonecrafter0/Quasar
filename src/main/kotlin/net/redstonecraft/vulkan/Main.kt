@@ -26,6 +26,7 @@ fun main() {
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents()
+        vulkan.drawFrame()
     }
 
     vulkan.close()

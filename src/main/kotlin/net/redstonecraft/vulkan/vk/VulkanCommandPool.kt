@@ -29,6 +29,12 @@ class VulkanCommandPool private constructor(val device: VulkanLogicalDevice, fla
         }
     }
 
+    fun buildCommandBuffer(block: VulkanCommandBuffer.Builder.() -> Unit): VulkanCommandBuffer {
+        val builder = VulkanCommandBuffer.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
     override fun close() {
         vkDestroyCommandPool(device.handle, handle, null)
     }
