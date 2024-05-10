@@ -14,7 +14,7 @@ class VulkanImageView private constructor(val device: VulkanLogicalDevice, image
         var image: Long? = null
         var format: Int? = null
 
-        fun build(): VulkanImageView {
+        internal fun build(): VulkanImageView {
             requireNotNull(image) { "image must be not null" }
             requireNotNull(format) { "image must be not null" }
             return VulkanImageView(device, image!!, format!!)

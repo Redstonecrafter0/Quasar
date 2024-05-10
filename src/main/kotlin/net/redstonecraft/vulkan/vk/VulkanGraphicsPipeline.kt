@@ -26,7 +26,7 @@ class VulkanGraphicsPipeline private constructor(
         var primitive: VulkanPrimitive? = null
         var culling: VulkanCulling? = null
 
-        fun build(): VulkanGraphicsPipeline {
+        internal fun build(): VulkanGraphicsPipeline {
             return VulkanGraphicsPipeline(renderPass, extent!!, vertexShader!!, fragmentShader!!, primitive!!, culling!!)
         }
     }

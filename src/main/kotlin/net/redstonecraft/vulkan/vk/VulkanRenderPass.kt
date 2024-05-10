@@ -15,7 +15,7 @@ class VulkanRenderPass private constructor(val device: VulkanLogicalDevice, val 
 
         var format: Int? = null
 
-        fun build(): VulkanRenderPass {
+        internal fun build(): VulkanRenderPass {
             requireNotNull(format) { "format must not be null" }
             return VulkanRenderPass(device, format!!)
         }

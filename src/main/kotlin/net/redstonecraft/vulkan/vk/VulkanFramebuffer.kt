@@ -14,7 +14,7 @@ class VulkanFramebuffer private constructor(val device: VulkanLogicalDevice, ext
         var imageView: VulkanImageView? = null
         var renderPass: VulkanRenderPass? = null
 
-        fun build(): VulkanFramebuffer {
+        internal fun build(): VulkanFramebuffer {
             requireNotNull(extent) { "extent must be not null" }
             requireNotNull(imageView) { "imageView must be not null" }
             requireNotNull(renderPass) { "renderPass must be not null" }

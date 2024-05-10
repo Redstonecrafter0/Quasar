@@ -10,7 +10,7 @@ class VulkanCommandPool private constructor(val device: VulkanLogicalDevice, fla
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
         var flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
 
-        fun build() = VulkanCommandPool(device, flags)
+        internal fun build() = VulkanCommandPool(device, flags)
     }
 
     override val handle: Long

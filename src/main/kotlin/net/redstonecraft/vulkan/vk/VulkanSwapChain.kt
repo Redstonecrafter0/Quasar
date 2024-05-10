@@ -18,7 +18,7 @@ class VulkanSwapChain private constructor(
         var forceRenderAllPixels: Boolean = false
         var renderPass: VulkanRenderPass? = null
 
-        fun build(): VulkanSwapChain {
+        internal fun build(): VulkanSwapChain {
             requireNotNull(renderPass) { "renderPass must be not null" }
             return VulkanSwapChain(device, forceRenderAllPixels, renderPass!!)
         }

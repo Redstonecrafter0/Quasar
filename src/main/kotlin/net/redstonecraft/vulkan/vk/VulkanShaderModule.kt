@@ -47,7 +47,7 @@ class VulkanVertexShaderModule private constructor(device: VulkanLogicalDevice, 
         var shaderCompiler: SPIRVCompiler? = null
         var path: String? = null
 
-        fun build(): VulkanVertexShaderModule {
+        internal fun build(): VulkanVertexShaderModule {
             requireNotNull(shaderCompiler) { "shaderCompiler must be not null" }
             requireNotNull(path) { "path must be not null" }
             return VulkanVertexShaderModule(device, shaderCompiler!!, path!!)
@@ -62,7 +62,7 @@ class VulkanFragmentShaderModule private constructor(device: VulkanLogicalDevice
         var shaderCompiler: SPIRVCompiler? = null
         var path: String? = null
 
-        fun build(): VulkanFragmentShaderModule {
+        internal fun build(): VulkanFragmentShaderModule {
             requireNotNull(shaderCompiler) { "shaderCompiler must be not null" }
             requireNotNull(path) { "path must be not null" }
             return VulkanFragmentShaderModule(device, shaderCompiler!!, path!!)
@@ -77,7 +77,7 @@ class VulkanComputeShaderModule private constructor(device: VulkanLogicalDevice,
         var shaderCompiler: SPIRVCompiler? = null
         var path: String? = null
 
-        fun build(): VulkanComputeShaderModule {
+        internal fun build(): VulkanComputeShaderModule {
             requireNotNull(shaderCompiler) { "shaderCompiler must be not null" }
             requireNotNull(path) { "path must be not null" }
             return VulkanComputeShaderModule(device, shaderCompiler!!, path!!)
