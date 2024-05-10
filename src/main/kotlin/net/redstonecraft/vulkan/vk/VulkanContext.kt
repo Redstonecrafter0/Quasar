@@ -63,6 +63,8 @@ class VulkanContext(
         renderPass = graphicsPipeline.renderPass
     }
 
+    val commandPool = device.buildCommandPool {  }
+
     override fun close() {
         vertexShader.close()
         fragmentShader.close()

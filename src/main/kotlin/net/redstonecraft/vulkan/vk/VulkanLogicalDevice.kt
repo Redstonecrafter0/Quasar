@@ -105,6 +105,12 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
         return builder.build()
     }
 
+    fun buildCommandPool(block: VulkanCommandPool.Builder.() -> Unit): VulkanCommandPool {
+        val builder = VulkanCommandPool.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
     override fun close() {
         vkDestroyDevice(handle, null)
     }
