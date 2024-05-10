@@ -40,8 +40,15 @@ class VulkanContext(
         format = device.physicalDevice.surfaceFormat!!.format
     }
 
-    val vertexShader = VulkanVertexShaderModule(renderPass.device, shaderCompiler, "${shaderPath.removeSuffix("/")}/vert.glsl")
-    val fragmentShader = VulkanFragmentShaderModule(renderPass.device, shaderCompiler, "${shaderPath.removeSuffix("/")}/frag.glsl")
+    val vertexShader = device.buildVertexShaderModule {
+        shaderCompiler = this@VulkanContext.shaderCompiler
+        this.path = "${shaderPath.removeSuffix("/")}/vert.glsl"
+    }
+
+    val fragmentShader = device.buildFragmentShaderModule {
+        shaderCompiler = this@VulkanContext.shaderCompiler
+        this.path = "${shaderPath.removeSuffix("/")}/frag.glsl"
+    }
 
     val graphicsPipeline = renderPass.buildGraphicsPipeline {
         extent = physicalDevice.surfaceCapabilities!!.extent

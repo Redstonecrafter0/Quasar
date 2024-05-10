@@ -23,7 +23,9 @@ class VulkanInstance private constructor(
 ): IHandle<VkInstance> {
 
     companion object {
+
         private const val validationLayer = "VK_LAYER_KHRONOS_validation"
+
         fun build(block: Builder.() -> Unit): VulkanInstance {
             val builder = Builder()
             builder.block()

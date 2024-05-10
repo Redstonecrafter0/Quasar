@@ -7,7 +7,7 @@ import org.lwjgl.vulkan.VkComponentMapping
 import org.lwjgl.vulkan.VkImageSubresourceRange
 import org.lwjgl.vulkan.VkImageViewCreateInfo
 
-class VulkanImageView internal constructor(val device: VulkanLogicalDevice, image: Long, val format: Int): IHandle<Long> {
+class VulkanImageView private constructor(val device: VulkanLogicalDevice, image: Long, val format: Int): IHandle<Long> {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
 

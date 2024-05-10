@@ -6,7 +6,7 @@ import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkExtent2D
 import org.lwjgl.vulkan.VkFramebufferCreateInfo
 
-class VulkanFramebuffer(val device: VulkanLogicalDevice, extent: VkExtent2D, imageView: VulkanImageView, renderPass: VulkanRenderPass): IHandle<Long> {
+class VulkanFramebuffer private constructor(val device: VulkanLogicalDevice, extent: VkExtent2D, imageView: VulkanImageView, renderPass: VulkanRenderPass): IHandle<Long> {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
 

@@ -7,7 +7,7 @@ import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK12.*
 
 // TODO: redo in order to allow headless (no swapChainKHR) and be customizable
-class VulkanRenderPass(val device: VulkanLogicalDevice, val format: Int): IHandle<Long> {
+class VulkanRenderPass private constructor(val device: VulkanLogicalDevice, val format: Int): IHandle<Long> {
 
     override val handle: Long
 

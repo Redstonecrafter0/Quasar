@@ -8,7 +8,7 @@ import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 import org.lwjgl.vulkan.VkShaderModuleCreateInfo
 
-open class VulkanShaderModule(val device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String, private val type: ShaderType): IHandle<Long> {
+open class VulkanShaderModule internal constructor(val device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String, private val type: ShaderType): IHandle<Long> {
 
     final override val handle: Long
 
@@ -41,8 +41,47 @@ open class VulkanShaderModule(val device: VulkanLogicalDevice, shaderCompiler: S
 
 }
 
-class VulkanVertexShaderModule(device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String): VulkanShaderModule(device, shaderCompiler, path, ShaderType.VERTEX)
+class VulkanVertexShaderModule private constructor(device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String): VulkanShaderModule(device, shaderCompiler, path, ShaderType.VERTEX) {
 
-class VulkanFragmentShaderModule(device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String): VulkanShaderModule(device, shaderCompiler, path, ShaderType.FRAGMENT)
+    class Builder internal constructor(private val device: VulkanLogicalDevice) {
+        var shaderCompiler: SPIRVCompiler? = null
+        var path: String? = null
 
-class VulkanComputeShaderModule(device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String): VulkanShaderModule(device, shaderCompiler, path, ShaderType.COMPUTE)
+        fun build(): VulkanVertexShaderModule {
+            requireNotNull(shaderCompiler) { "shaderCompiler must be not null" }
+            requireNotNull(path) { "path must be not null" }
+            return VulkanVertexShaderModule(device, shaderCompiler!!, path!!)
+        }
+    }
+
+}
+
+class VulkanFragmentShaderModule private constructor(device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String): VulkanShaderModule(device, shaderCompiler, path, ShaderType.FRAGMENT) {
+
+    class Builder internal constructor(private val device: VulkanLogicalDevice) {
+        var shaderCompiler: SPIRVCompiler? = null
+        var path: String? = null
+
+        fun build(): VulkanFragmentShaderModule {
+            requireNotNull(shaderCompiler) { "shaderCompiler must be not null" }
+            requireNotNull(path) { "path must be not null" }
+            return VulkanFragmentShaderModule(device, shaderCompiler!!, path!!)
+        }
+    }
+
+}
+
+class VulkanComputeShaderModule private constructor(device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String): VulkanShaderModule(device, shaderCompiler, path, ShaderType.COMPUTE) {
+
+    class Builder internal constructor(private val device: VulkanLogicalDevice) {
+        var shaderCompiler: SPIRVCompiler? = null
+        var path: String? = null
+
+        fun build(): VulkanComputeShaderModule {
+            requireNotNull(shaderCompiler) { "shaderCompiler must be not null" }
+            requireNotNull(path) { "path must be not null" }
+            return VulkanComputeShaderModule(device, shaderCompiler!!, path!!)
+        }
+    }
+
+}

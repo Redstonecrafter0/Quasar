@@ -7,7 +7,7 @@ import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT
 import java.io.Closeable
 
-class VulkanDebugMessenger(private val instance: VulkanInstance): Closeable {
+class VulkanDebugMessenger internal constructor(private val instance: VulkanInstance): Closeable {
 
     companion object {
 

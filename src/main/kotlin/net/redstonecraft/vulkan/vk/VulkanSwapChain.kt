@@ -8,7 +8,7 @@ import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
 import kotlin.math.min
 
-class VulkanSwapChain internal constructor(
+class VulkanSwapChain private constructor(
     val device: VulkanLogicalDevice,
     forceRenderAllPixels: Boolean,
     renderPass: VulkanRenderPass

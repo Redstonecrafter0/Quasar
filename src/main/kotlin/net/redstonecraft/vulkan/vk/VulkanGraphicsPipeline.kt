@@ -9,7 +9,7 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK12.*
 
-class VulkanGraphicsPipeline(
+class VulkanGraphicsPipeline private constructor(
     val renderPass: VulkanRenderPass,
     extent: VkExtent2D,
     vertexShader: VulkanVertexShaderModule,

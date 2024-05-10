@@ -5,7 +5,13 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo
 
-class VulkanCommandPool(val device: VulkanLogicalDevice): IHandle<Long> {
+class VulkanCommandPool private constructor(val device: VulkanLogicalDevice): IHandle<Long> {
+
+    class Builder internal constructor(private val device: VulkanLogicalDevice) {
+
+
+        fun build() = VulkanCommandPool(device)
+    }
 
     override val handle: Long
 

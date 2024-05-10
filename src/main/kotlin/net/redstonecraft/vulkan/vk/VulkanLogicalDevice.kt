@@ -87,6 +87,24 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
         return builder.build()
     }
 
+    fun buildVertexShaderModule(block: VulkanVertexShaderModule.Builder.() -> Unit): VulkanVertexShaderModule {
+        val builder = VulkanVertexShaderModule.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
+    fun buildFragmentShaderModule(block: VulkanFragmentShaderModule.Builder.() -> Unit): VulkanFragmentShaderModule {
+        val builder = VulkanFragmentShaderModule.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
+    fun buildComputeShaderModule(block: VulkanComputeShaderModule.Builder.() -> Unit): VulkanComputeShaderModule {
+        val builder = VulkanComputeShaderModule.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
     override fun close() {
         vkDestroyDevice(handle, null)
     }
