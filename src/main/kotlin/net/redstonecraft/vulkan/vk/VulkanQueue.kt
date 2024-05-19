@@ -48,8 +48,8 @@ class VulkanQueue internal constructor(override val handle: VkQueue): IHandle<Vk
         }
     }
 
-    fun present(swapChain: VulkanSwapChain, imageIndex: Int, waitSemaphores: List<VulkanSemaphore>) {
-        MemoryStack.stackPush().use { stack ->
+    fun present(swapChain: VulkanSwapChain, imageIndex: Int, waitSemaphores: List<VulkanSemaphore>): Boolean {
+        return MemoryStack.stackPush().use { stack ->
             val pWaitSemaphores = stack.callocLong(waitSemaphores.size)
             for (i in waitSemaphores) {
                 pWaitSemaphores.put(i.handle)
@@ -68,9 +68,11 @@ class VulkanQueue internal constructor(override val handle: VkQueue): IHandle<Vk
                 .pImageIndices(imageIndices)
                 .pResults(null)
             val ret = vkQueuePresentKHR(handle, presentInfo)
-            if (ret != VK_SUCCESS) {
+            val recreate = ret == VK_ERROR_OUT_OF_DATE_KHR || ret == VK_SUBOPTIMAL_KHR
+            if (ret != VK_SUCCESS && !recreate) {
                 throw VulkanException("vkQueuePresentKHR failed", ret)
             }
+            recreate
         }
     }
 

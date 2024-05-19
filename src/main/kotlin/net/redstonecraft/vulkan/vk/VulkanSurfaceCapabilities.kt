@@ -7,13 +7,19 @@ import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VkExtent2D
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
 
-class VulkanSurfaceCapabilities internal constructor(physicalDevice: VulkanPhysicalDevice, surface: VulkanSurface): IHandle<VkSurfaceCapabilitiesKHR> {
+class VulkanSurfaceCapabilities internal constructor(private val physicalDevice: VulkanPhysicalDevice, private val surface: VulkanSurface): IHandle<VkSurfaceCapabilitiesKHR> {
 
-    override val handle: VkSurfaceCapabilitiesKHR
-    val extent: VkExtent2D
-    private val manualExtent: Boolean
+    override lateinit var handle: VkSurfaceCapabilitiesKHR
+        private set
+    lateinit var extent: VkExtent2D
+        private set
+    private var manualExtent: Boolean = false
 
     init {
+        create()
+    }
+
+    private fun create() {
         MemoryStack.stackPush().use { stack ->
             handle = VkSurfaceCapabilitiesKHR.calloc()
             vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.handle, surface.handle, handle)
@@ -32,6 +38,11 @@ class VulkanSurfaceCapabilities internal constructor(physicalDevice: VulkanPhysi
                     .height(height.get(0).coerceIn(handle.minImageExtent().height(), handle.maxImageExtent().height()))
             }
         }
+    }
+
+    fun notifyResize() {
+        close()
+        create()
     }
 
     override fun close() {

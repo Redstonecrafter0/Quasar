@@ -39,6 +39,10 @@ fun main() {
 
     glfwSetWindowRefreshCallback(window, render)
 
+    glfwSetFramebufferSizeCallback(window) { window: Long, width: Int, height: Int ->
+        vulkan.notifyResize()
+    }
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents()
         render(window)

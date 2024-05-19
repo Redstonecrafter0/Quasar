@@ -106,11 +106,18 @@ class VulkanSwapChain private constructor(
         }
     }
 
-    fun acquireNextImage(semaphore: VulkanSemaphore? = null, fence: VulkanFence? = null): Int {
+    /**
+     * @return null if the swap chain needs to be recreated
+     * */
+    fun acquireNextImage(semaphore: VulkanSemaphore? = null, fence: VulkanFence? = null): Int? {
         return MemoryStack.stackPush().use { stack ->
             val pImageIndex = stack.callocInt(1)
-            vkAcquireNextImageKHR(device.handle, handle, Long.MAX_VALUE, semaphore?.handle ?: VK_NULL_HANDLE, fence?.handle ?: VK_NULL_HANDLE, pImageIndex)
-            pImageIndex.get(0)
+            val ret = vkAcquireNextImageKHR(device.handle, handle, Long.MAX_VALUE, semaphore?.handle ?: VK_NULL_HANDLE, fence?.handle ?: VK_NULL_HANDLE, pImageIndex)
+            if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
+                null
+            } else {
+                pImageIndex.get(0)
+            }
         }
     }
 

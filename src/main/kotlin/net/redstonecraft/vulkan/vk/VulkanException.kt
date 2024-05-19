@@ -32,6 +32,8 @@ class VulkanException(message: String, ret: Int? = null): Exception(transformMes
             -11 to "VK_ERROR_FORMAT_NOT_SUPPORTED",
             -12 to "VK_ERROR_FRAGMENTED_POOL",
             -13 to "VK_ERROR_UNKNOWN",
+            1000001003 to "VK_SUBOPTIMAL_KHR",
+            -1000001004 to "VK_ERROR_OUT_OF_DATE_KHR",
         )
 
     }
