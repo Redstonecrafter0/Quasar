@@ -6,7 +6,7 @@ class VulkanException(message: String, ret: Int? = null): Exception(transformMes
 
         fun transformMessage(message: String, ret: Int?): String {
             return if (ret != null) {
-                "${map[ret]}: $message"
+                "${map[ret] ?: ret.toString()}: $message"
             } else {
                 message
             }

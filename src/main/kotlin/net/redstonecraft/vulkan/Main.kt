@@ -24,9 +24,24 @@ fun main() {
 
     val vulkan = VulkanContext(window, compiler, "test", "Vulkan Test", Triple(0, 1, 0))
 
+    var time = System.nanoTime()
+    var frames = 0
+
+    val render = { window: Long ->
+        vulkan.drawFrame()
+        frames++
+        if ((System.nanoTime() - time) >= 1000000000) {
+            println(frames)
+            frames = 0
+            time = System.nanoTime()
+        }
+    }
+
+    glfwSetWindowRefreshCallback(window, render)
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents()
-        vulkan.drawFrame()
+        render(window)
     }
 
     vulkan.close()

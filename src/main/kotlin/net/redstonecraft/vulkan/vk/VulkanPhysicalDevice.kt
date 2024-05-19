@@ -49,8 +49,8 @@ class VulkanPhysicalDevice internal constructor(instance: VulkanInstance, val su
             throw VulkanException("No present modes available") // should never happen
         }
 
-        if (!instance.vSync && VK_PRESENT_MODE_MAILBOX_KHR in presentModes) {
-            return VK_PRESENT_MODE_MAILBOX_KHR
+        if (!instance.vSync && VK_PRESENT_MODE_IMMEDIATE_KHR in presentModes) {
+            return VK_PRESENT_MODE_IMMEDIATE_KHR
         }
         return VK_PRESENT_MODE_FIFO_KHR // guaranteed to exist
     }
