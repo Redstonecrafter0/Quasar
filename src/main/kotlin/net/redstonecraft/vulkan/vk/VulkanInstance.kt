@@ -48,8 +48,6 @@ class VulkanInstance private constructor(
 
     override val handle: VkInstance
     private val debugMessenger: VulkanDebugMessenger?
-    val physicalDevices = lazy {
-    }
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -135,7 +133,7 @@ class VulkanInstance private constructor(
             }
             val selectedDevice = devices.block()
             (devices - selectedDevice).forEach { it.close() }
-            return selectedDevice
+            selectedDevice
         }
     }
 

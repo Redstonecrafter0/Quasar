@@ -67,10 +67,17 @@ class VulkanContext(
 
     val commandBuffer = commandPool.buildCommandBuffer {  }
 
-    init {
-        val imageIndex = 0
-        commandBuffer.begin()
-            .renderPass(renderPass) {
+    val inFlightFence = device.buildFence {  }
+    val imageAvailableSemaphore = device.buildSemaphore()
+    val renderFinishedSemaphore = device.buildSemaphore()
+
+    fun drawFrame() {
+        inFlightFence.waitForFence()
+        inFlightFence.reset()
+        val imageIndex = swapChain.acquireNextImage(imageAvailableSemaphore)
+        commandBuffer.reset()
+        commandBuffer.record {
+            renderPass(renderPass) {
                 framebuffer = swapChain.framebuffers[imageIndex]
                 extent = physicalDevice.surfaceCapabilities!!.extent
                 graphicsPipeline(graphicsPipeline) {
@@ -78,13 +85,16 @@ class VulkanContext(
                     scissorExtent = physicalDevice.surfaceCapabilities.extent
                 }
             }
-            .end()
-    }
-
-    fun drawFrame() {
+        }
+        device.graphicsQueue.submit(listOf(commandBuffer), listOf(imageAvailableSemaphore), listOf(renderFinishedSemaphore), inFlightFence)
+        device.presentQueue.present(swapChain, imageIndex, listOf(renderFinishedSemaphore))
     }
 
     override fun close() {
+        device.waitIdle()
+        renderFinishedSemaphore.close()
+        imageAvailableSemaphore.close()
+        inFlightFence.close()
         commandPool.close()
         vertexShader.close()
         fragmentShader.close()

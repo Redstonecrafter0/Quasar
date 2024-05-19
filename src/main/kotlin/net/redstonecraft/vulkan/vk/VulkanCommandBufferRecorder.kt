@@ -114,11 +114,4 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
         return this
     }
 
-    fun end() {
-        val ret = vkEndCommandBuffer(commandBuffer.handle)
-        if (ret != VK_SUCCESS) {
-            throw VulkanException("vkEndCommandBuffer failed", ret)
-        }
-    }
-
 }

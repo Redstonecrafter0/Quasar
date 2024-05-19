@@ -10,7 +10,7 @@ import org.lwjgl.vulkan.VK12.*
 class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysicalDevice): IHandle<VkDevice> {
 
     override val handle: VkDevice
-    val queues: List<VkQueue>
+    val queues: Map<Int, VulkanQueue>
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -31,13 +31,16 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
                 throw VulkanException("vkCreateDevice failed", ret)
             }
             handle = VkDevice(pDevice.get(0), physicalDevice.handle, createInfo)
-            queues = queueFamilySet.map {
+            queues = queueFamilySet.associateWith {
                 val pQueue = stack.callocPointer(1)
                 vkGetDeviceQueue(handle, it, 0, pQueue)
-                VkQueue(pQueue.get(0), handle)
+                VulkanQueue(VkQueue(pQueue.get(0), handle))
             }
         }
     }
+
+    val graphicsQueue by lazy { queues[physicalDevice.queueFamilyIndices.graphicsFamily]!! }
+    val presentQueue by lazy { queues[physicalDevice.queueFamilyIndices.presentFamily]!! }
 
     private fun buildQueueCreateInfo(queueFamilySet: Set<Int>, stack: MemoryStack): VkDeviceQueueCreateInfo.Buffer {
         val queueCreateInfos = VkDeviceQueueCreateInfo.calloc(queueFamilySet.size, stack)
@@ -109,6 +112,18 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
         val builder = VulkanCommandPool.Builder(this)
         builder.block()
         return builder.build()
+    }
+
+    fun buildFence(block: VulkanFence.Builder.() -> Unit): VulkanFence {
+        val builder = VulkanFence.Builder(this)
+        builder.block()
+        return builder.build()
+    }
+
+    fun buildSemaphore() = VulkanSemaphore(this)
+
+    fun waitIdle() {
+        vkDeviceWaitIdle(handle)
     }
 
     override fun close() {
