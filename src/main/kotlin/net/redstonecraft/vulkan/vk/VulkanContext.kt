@@ -3,11 +3,13 @@ package net.redstonecraft.vulkan.vk
 import net.redstonecraft.vulkan.spvc.SPIRVCompiler
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
-import org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME
+import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.system.MemoryStack
+import org.lwjgl.vulkan.KHRSwapchain.*
 import java.io.Closeable
 
 class VulkanContext(
-    window: Long,
+    private val window: Long,
     val shaderCompiler: SPIRVCompiler,
     val shaderPath: String,
     appName: String,
@@ -38,7 +40,7 @@ class VulkanContext(
         this.extensions = emptyList()
     }
     val surface = instance.buildSurface {
-        this.window = window
+        this.window = this@VulkanContext.window
     }
     val physicalDevice = instance.getBestPhysicalDevice(surface, deviceExtensions.toSet())
 
@@ -87,7 +89,19 @@ class VulkanContext(
     var frame = 0
 
     fun notifyResize() {
-        physicalDevice.surfaceCapabilities!!.notifyResize()
+        MemoryStack.stackPush().use { stack ->
+            val pWidth = stack.callocInt(1)
+            val pHeight = stack.callocInt(1)
+            glfwGetFramebufferSize(window, pWidth, pHeight)
+            while (pWidth.get() == 0 || pHeight.get() == 0) {
+                pWidth.clear()
+                pHeight.clear()
+                glfwGetFramebufferSize(window, pWidth, pHeight)
+                glfwWaitEvents()
+            }
+            device.waitIdle()
+            physicalDevice.surfaceCapabilities!!.notifyResize()
+        }
     }
 
     fun recreateSwapChain() {
