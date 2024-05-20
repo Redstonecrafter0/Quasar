@@ -1,7 +1,6 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.spvc.SPIRVCompiler
-import net.redstonecraft.vulkan.spvc.ShaderType
+import net.redstonecraft.vulkan.vk.enums.InputRate
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
@@ -15,11 +14,51 @@ class VulkanGraphicsPipeline private constructor(
     vertexShader: VulkanVertexShaderModule,
     fragmentShader: VulkanFragmentShaderModule,
     primitive: VulkanPrimitive,
-    culling: VulkanCulling
+    culling: VulkanCulling,
+    bindings: List<VkVertexInputBindingDescription>,
+    attributes: List<VkVertexInputAttributeDescription>
 ): IHandle<Long> {
 
     class Builder internal constructor(private val renderPass: VulkanRenderPass) {
 
+        inner class BindingBuilder internal constructor(private val binding: Int) {
+            internal val attributes = mutableListOf<VkVertexInputAttributeDescription>()
+
+            /**
+             * @param format see VK_FORMAT_*
+             * */
+            fun attribute(
+                location: Int,
+                format: Int,
+                offset: Int
+            ) {
+                attributes += VkVertexInputAttributeDescription.calloc(stack)
+                    .binding(binding)
+                    .location(location)
+                    .format(format)
+                    .offset(offset)
+            }
+        }
+
+        fun binding(
+            binding: Int,
+            stride: Int,
+            inputRate: InputRate,
+            block: BindingBuilder.() -> Unit
+        ) {
+            bindings += VkVertexInputBindingDescription.calloc(stack)
+                .binding(binding)
+                .stride(stride)
+                .inputRate(inputRate.inputRate)
+            val builder = BindingBuilder(binding)
+            builder.block()
+            attributes += builder.attributes
+        }
+
+        private val stack = MemoryStack.stackPush()
+
+        private val bindings = mutableListOf<VkVertexInputBindingDescription>()
+        private val attributes = mutableListOf<VkVertexInputAttributeDescription>()
         var extent: VkExtent2D? = null
         var vertexShader: VulkanVertexShaderModule? = null
         var fragmentShader: VulkanFragmentShaderModule? = null
@@ -27,7 +66,12 @@ class VulkanGraphicsPipeline private constructor(
         var culling: VulkanCulling? = null
 
         internal fun build(): VulkanGraphicsPipeline {
-            return VulkanGraphicsPipeline(renderPass, extent!!, vertexShader!!, fragmentShader!!, primitive!!, culling!!)
+            requireNotNull(extent) { "extent must be not null" }
+            requireNotNull(vertexShader) { "vertexShader must be not null" }
+            requireNotNull(fragmentShader) { "fragmentShader must be not null" }
+            requireNotNull(primitive) { "primitive must be not null" }
+            requireNotNull(culling) { "culling must be not null" }
+            return VulkanGraphicsPipeline(renderPass, extent!!, vertexShader!!, fragmentShader!!, primitive!!, culling!!, bindings, attributes)
         }
     }
 
@@ -46,17 +90,25 @@ class VulkanGraphicsPipeline private constructor(
                 .flip()
             val dynamicState = VkPipelineDynamicStateCreateInfo.calloc(stack).`sType$Default`()
                 .pDynamicStates(dynamicStates)
-            val vertexInputInfo = VkPipelineVertexInputStateCreateInfo.calloc(stack).`sType$Default`() // TODO: add options when far enough in the tutorial
-                .pVertexBindingDescriptions(null)
-                .pVertexAttributeDescriptions(null)
+            val pBindings = VkVertexInputBindingDescription.calloc(bindings.size, stack)
+            for (i in bindings) {
+                pBindings.put(i)
+            }
+            pBindings.flip()
+            val pAttributes = VkVertexInputAttributeDescription.calloc(attributes.size, stack)
+            for (i in attributes) {
+                pAttributes.put(i)
+            }
+            pAttributes.flip()
+            val vertexInputInfo = VkPipelineVertexInputStateCreateInfo.calloc(stack).`sType$Default`()
+                .pVertexBindingDescriptions(pBindings)
+                .pVertexAttributeDescriptions(pAttributes)
             val inputAssembly = VkPipelineInputAssemblyStateCreateInfo.calloc(stack).`sType$Default`()
                 .topology(primitive.primitive)
                 .primitiveRestartEnable(false)
             val viewport = VkViewport.calloc(stack)
                 .x(0F)
                 .y(0F)
-//                .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width().toFloat())
-//                .height(swapChain.device.physicalDevice.surfaceCapabilities.extent.height().toFloat())
                 .width(extent.width().toFloat())
                 .height(extent.height().toFloat())
                 .minDepth(0F)

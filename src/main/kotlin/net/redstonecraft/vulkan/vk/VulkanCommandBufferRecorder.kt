@@ -64,19 +64,26 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
 
         inner class GraphicsPipelineBuilder internal constructor(val graphicsPipeline: VulkanGraphicsPipeline) {
 
+            private val vertexBuffers = mutableListOf<VulkanVertexBuffer>()
+
             var viewportPos = 0F to 0F
             var viewportSize: Pair<Float, Float>? = null
             var viewportDepth = 0F to 1F
             var scissorPos = 0 to 0
             var scissorExtent: VkExtent2D? = null
-            var vertexCount: Int = 3
-            var instanceCount: Int = 1
-            var firstVertex: Int = 0
-            var firstInstance: Int = 0
+            var vertexCount: Int? = null
+            var instanceCount = 1
+            var firstVertex = 0
+            var firstInstance = 0
+
+            fun bindVertexBuffer(vertexBuffer: VulkanVertexBuffer) {
+                vertexBuffers += vertexBuffer
+            }
 
             fun build() {
                 requireNotNull(viewportSize) { "viewportSize must be not null" }
                 requireNotNull(scissorExtent) { "scissorExtent must be not null" }
+                requireNotNull(vertexCount) { "vertexCount must be not null" }
                 MemoryStack.stackPush().use { stack ->
                     vkCmdBindPipeline(commandBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.handle)
                     val viewport = VkViewport.calloc(stack)
@@ -100,7 +107,16 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
                         .put(scissor)
                         .flip()
                     vkCmdSetScissor(commandBuffer.handle, 0, scissors)
-                    vkCmdDraw(commandBuffer.handle, vertexCount, instanceCount, firstVertex, firstInstance)
+                    val pVertexBuffers = stack.callocLong(vertexBuffers.size)
+                    val pOffsets = stack.callocLong(vertexBuffers.size)
+                    for (i in vertexBuffers) {
+                        pVertexBuffers.put(i.handle)
+                        pOffsets.put(0)
+                    }
+                    pVertexBuffers.flip()
+                    pOffsets.flip()
+                    vkCmdBindVertexBuffers(commandBuffer.handle, 0, pVertexBuffers, pOffsets)
+                    vkCmdDraw(commandBuffer.handle, vertexCount!!, instanceCount, firstVertex, firstInstance)
                 }
             }
         }

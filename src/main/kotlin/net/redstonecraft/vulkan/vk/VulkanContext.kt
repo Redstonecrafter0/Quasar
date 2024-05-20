@@ -1,11 +1,13 @@
 package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.spvc.SPIRVCompiler
+import net.redstonecraft.vulkan.vk.enums.InputRate
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSwapchain.*
+import org.lwjgl.vulkan.VK12.*
 import java.io.Closeable
 
 class VulkanContext(
@@ -66,6 +68,17 @@ class VulkanContext(
         fragmentShader = this@VulkanContext.fragmentShader
         primitive = VulkanPrimitive.TRIANGLE
         culling = VulkanCulling.OFF
+
+        binding(0, 5 * 4, InputRate.VERTEX) {
+            attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
+            attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * 4)
+        }
+    }
+
+    val vertexBuffer = device.buildVertexBuffer {
+        size = 3 * 5 * 4
+    }.apply {
+        upload(0, 3 * 5 * 4, floatArrayOf(0.0f, -0.5f, 1.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f))
     }
 
     var swapChain = device.buildSwapChain {
@@ -134,6 +147,8 @@ class VulkanContext(
                 graphicsPipeline(graphicsPipeline) {
                     viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
                     scissorExtent = physicalDevice.surfaceCapabilities.extent
+                    vertexCount = 3
+                    bindVertexBuffer(vertexBuffer)
                 }
             }
         }
@@ -150,6 +165,7 @@ class VulkanContext(
             it.imageAvailableSemaphore.close()
             it.inFlightFence.close()
         }
+        vertexBuffer.close()
         commandPool.close()
         vertexShader.close()
         fragmentShader.close()
