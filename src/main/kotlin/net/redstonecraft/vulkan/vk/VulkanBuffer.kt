@@ -28,24 +28,10 @@ open class VulkanBuffer internal constructor(
                 throw VulkanException("vkCreateBuffer failed", ret)
             }
             handle = pBuffer.get(0)
-            val memoryRequirements = VkMemoryRequirements.calloc(stack)
-            vkGetBufferMemoryRequirements(device.handle, handle, memoryRequirements)
-            val physicalDeviceMemoryProperties = VkPhysicalDeviceMemoryProperties.calloc(stack)
-            vkGetPhysicalDeviceMemoryProperties(device.physicalDevice.handle, physicalDeviceMemoryProperties)
-            val memoryTypes = physicalDeviceMemoryProperties.memoryTypes()
-            val typeFilter = 1 // TODO
-            val properties = 1 // TODO
-            var found: Int? = null
-            for (i in 0 until physicalDeviceMemoryProperties.memoryTypeCount()) {
-                if (typeFilter and (1 shl i) != 0 && (memoryTypes.get(i).propertyFlags() and properties) == properties) {
-                    found = i
-                    break
-                }
-            }
-            found ?: throw VulkanException("no suitable memory found for buffer")
         }
     }
 
+    @Suppress("LeakingThis")
     private val memory = VulkanDeviceMemory(this)
 
     init {
