@@ -201,6 +201,7 @@ class VulkanContext(
         transferSemaphore.close()
         indexBuffer.backingBuffer.close()
         vertexBuffer.close()
+        vertexBuffer.backingBuffer.close()
         transferCommandPool.close()
         commandPool.close()
         vertexShader.close()
