@@ -74,10 +74,19 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
             var viewportDepth = 0F to 1F
             var scissorPos = 0 to 0
             var scissorExtent: VkExtent2D? = null
-            var vertexCount: Int? = null
+            /**
+             * vertex or index count depending on whether an index buffer is specified
+             * */
+            var count: Int? = null
+            /**
+             * first vertex or first index depending on whether an index buffer is specified
+             * */
+            var first = 0
             var instanceCount = 1
-            var firstVertex = 0
             var firstInstance = 0
+
+            var indexBuffer: VulkanIndexBuffer? = null
+            var indexType = VK_INDEX_TYPE_UINT16
 
             fun bindVertexBuffer(vertexBuffer: VulkanVertexBuffer) {
                 vertexBuffers += vertexBuffer
@@ -86,7 +95,7 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
             fun build() {
                 requireNotNull(viewportSize) { "viewportSize must be not null" }
                 requireNotNull(scissorExtent) { "scissorExtent must be not null" }
-                requireNotNull(vertexCount) { "vertexCount must be not null" }
+                requireNotNull(count) { "vertexCount must be not null" }
                 MemoryStack.stackPush().use { stack ->
                     vkCmdBindPipeline(commandBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.handle)
                     val viewport = VkViewport.calloc(stack)
@@ -119,7 +128,16 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
                     pVertexBuffers.flip()
                     pOffsets.flip()
                     vkCmdBindVertexBuffers(commandBuffer.handle, 0, pVertexBuffers, pOffsets)
-                    vkCmdDraw(commandBuffer.handle, vertexCount!!, instanceCount, firstVertex, firstInstance)
+                    when {
+                        indexBuffer == null -> {
+                            vkCmdDraw(commandBuffer.handle, count!!, instanceCount, first, firstInstance)
+                        }
+                        indexBuffer != null -> {
+                            vkCmdBindIndexBuffer(commandBuffer.handle, indexBuffer!!.handle, 0, indexType)
+                            vkCmdDrawIndexed(commandBuffer.handle, count!!, instanceCount, first, 0, firstInstance)
+                        }
+                        else -> throw VulkanException("invalid state")
+                    }
                 }
             }
         }

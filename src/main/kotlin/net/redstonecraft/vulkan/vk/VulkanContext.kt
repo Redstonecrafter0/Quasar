@@ -76,10 +76,32 @@ class VulkanContext(
         }
     }
 
+    val transferCommandPool = device.buildCommandPool {
+        flags = flags or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+    }
+
+    val transferCommandBuffer = transferCommandPool.buildCommandBuffer {  }
+
     val vertexBuffer = device.buildStagedVertexBuffer {
-        size = 3 * 5 * 4
+        size = 4L * 5 * Float.SIZE_BYTES
     }.apply {
-        upload(0, 3 * 5 * 4, floatArrayOf(0.0f, -0.5f, 1.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f))
+        upload(0, 4 * 5, floatArrayOf(
+            -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+            -0.5f, 0.5f, 1.0f, 1.0f, 1.0f
+        ))
+    }
+
+    val indexBuffer = device.buildStagedIndexBuffer {
+        size = 6L * Short.SIZE_BYTES
+    }.apply {
+        upload(0, 6, shortArrayOf(0, 1, 2, 2, 3, 0))
+        transferCommandBuffer.record {
+            transferStagingBuffer(this@apply)
+        }
+        device.graphicsQueue.submit(listOf(transferCommandBuffer))
+        device.waitIdle()
     }
 
     var swapChain = device.buildSwapChain {
@@ -88,10 +110,6 @@ class VulkanContext(
     }
 
     val commandPool = device.buildCommandPool {  }
-
-    val transferCommandPool = device.buildCommandPool {
-        flags = flags or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-    }
 
     val transferSemaphore = device.buildSemaphore()
 
@@ -159,7 +177,8 @@ class VulkanContext(
                 graphicsPipeline(graphicsPipeline) {
                     viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
                     scissorExtent = physicalDevice.surfaceCapabilities.extent
-                    vertexCount = 3
+                    count = 6
+                    indexBuffer = this@VulkanContext.indexBuffer.backingBuffer
                     bindVertexBuffer(vertexBuffer.backingBuffer)
                 }
             }
@@ -179,6 +198,7 @@ class VulkanContext(
             it.inFlightFence.close()
         }
         transferSemaphore.close()
+        indexBuffer.close()
         vertexBuffer.close()
         transferCommandPool.close()
         commandPool.close()
