@@ -6,8 +6,6 @@ import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkCommandBuffer
 import org.lwjgl.vulkan.VkCommandBufferAllocateInfo
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo
-import org.lwjgl.vulkan.VkQueue
-import org.lwjgl.vulkan.VkSubmitInfo
 
 class VulkanCommandBuffer private constructor(val commandPool: VulkanCommandPool): IHandle<VkCommandBuffer> {
 
@@ -33,10 +31,10 @@ class VulkanCommandBuffer private constructor(val commandPool: VulkanCommandPool
         }
     }
 
-    fun record(block: VulkanCommandBufferRecorder.() -> Unit) {
+    fun record(flags: Int = 0, block: VulkanCommandBufferRecorder.() -> Unit) {
         MemoryStack.stackPush().use { stack ->
             val beginInfo = VkCommandBufferBeginInfo.calloc(stack).`sType$Default`()
-                .flags(0)
+                .flags(flags)
                 .pInheritanceInfo(null)
             val ret = vkBeginCommandBuffer(handle, beginInfo)
             if (ret != VK_SUCCESS) {

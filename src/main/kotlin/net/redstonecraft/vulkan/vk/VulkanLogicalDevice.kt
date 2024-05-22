@@ -120,6 +120,12 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
         return builder.build()
     }
 
+    fun buildStagedVertexBuffer(block: VulkanVertexBuffer.Builder.() -> Unit): VulkanStagingBuffer<VulkanVertexBuffer> {
+        val builder = VulkanVertexBuffer.Builder(this)
+        builder.block()
+        return VulkanStagingBuffer(this, builder.build())
+    }
+
     fun buildFence(block: VulkanFence.Builder.() -> Unit): VulkanFence {
         val builder = VulkanFence.Builder(this)
         builder.block()

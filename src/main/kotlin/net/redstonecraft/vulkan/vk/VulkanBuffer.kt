@@ -5,13 +5,12 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.*
 import org.lwjgl.vulkan.VK12.*
 import org.lwjgl.vulkan.VkBufferCreateInfo
-import org.lwjgl.vulkan.VkMemoryRequirements
-import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties
 
 open class VulkanBuffer internal constructor(
     internal val device: VulkanLogicalDevice,
     val size: Long,
-    type: Int
+    type: Int,
+    memoryProperties: Int
 ): IHandle<Long> {
 
     final override val handle: Long
@@ -32,7 +31,7 @@ open class VulkanBuffer internal constructor(
     }
 
     @Suppress("LeakingThis")
-    private val memory = VulkanDeviceMemory(this)
+    private val memory = VulkanDeviceMemory(this, memoryProperties)
 
     init {
         vkBindBufferMemory(device.handle, handle, memory.handle, 0)
@@ -58,16 +57,36 @@ open class VulkanBuffer internal constructor(
 
 }
 
-class VulkanVertexBuffer private constructor(device: VulkanLogicalDevice, size: Long): VulkanBuffer(device, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {
+class VulkanVertexBuffer private constructor(device: VulkanLogicalDevice, size: Long, type: Int, memoryProperties: Int): VulkanBuffer(device, size, type, memoryProperties) {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
 
         var size: Long? = null
+        var localMemory = true
 
         fun build(): VulkanVertexBuffer {
             requireNotNull(size) { "size must be not null" }
-            return VulkanVertexBuffer(device, size!!)
+            val memoryProperties = if (localMemory) {
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+            } else {
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            }
+            val type = if (localMemory) {
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT or VK_BUFFER_USAGE_TRANSFER_DST_BIT
+            } else {
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+            }
+            return VulkanVertexBuffer(device, size!!, type, memoryProperties)
         }
+    }
+
+}
+
+class VulkanStagingBuffer<T: VulkanBuffer> internal constructor(device: VulkanLogicalDevice, val backingBuffer: T): VulkanBuffer(device, backingBuffer.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
+
+    override fun close() {
+        backingBuffer.close()
+        super.close()
     }
 
 }

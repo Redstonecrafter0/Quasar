@@ -1,8 +1,10 @@
 package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.util.Color
+import net.redstonecraft.vulkan.vk.data.BufferCopyLocations
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VkBufferCopy
 import org.lwjgl.vulkan.VkClearColorValue
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkExtent2D
@@ -10,6 +12,7 @@ import org.lwjgl.vulkan.VkOffset2D
 import org.lwjgl.vulkan.VkRect2D
 import org.lwjgl.vulkan.VkRenderPassBeginInfo
 import org.lwjgl.vulkan.VkViewport
+import kotlin.math.min
 
 class VulkanCommandBufferRecorder internal constructor(private val commandBuffer: VulkanCommandBuffer) {
 
@@ -128,6 +131,32 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
         builder.block()
         builder.build()
         return this
+    }
+
+    fun copyBuffer(
+        srcBuffer: VulkanBuffer,
+        dstBuffer: VulkanBuffer,
+        copyRegions: List<BufferCopyLocations> = listOf(BufferCopyLocations(0, 0, min(srcBuffer.size, dstBuffer.size)))
+    ) {
+        MemoryStack.stackPush().use { stack ->
+            val pCopyRegions = VkBufferCopy.calloc(copyRegions.size)
+            for (i in copyRegions) {
+                val copyRegion = VkBufferCopy.calloc(stack)
+                    .srcOffset(i.srcOffset)
+                    .dstOffset(i.dstOffset)
+                    .size(i.size)
+                pCopyRegions.put(copyRegion)
+            }
+            pCopyRegions.flip()
+            vkCmdCopyBuffer(commandBuffer.handle, srcBuffer.handle, dstBuffer.handle, pCopyRegions)
+        }
+    }
+
+    fun transferStagingBuffer(
+        buffer: VulkanStagingBuffer<*>,
+        copyRegions: List<BufferCopyLocations> = listOf(BufferCopyLocations(0, 0, buffer.size))
+    ) {
+        copyBuffer(buffer, buffer.backingBuffer, copyRegions)
     }
 
 }

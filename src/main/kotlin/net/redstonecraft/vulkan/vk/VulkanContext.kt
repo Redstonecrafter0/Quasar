@@ -27,6 +27,7 @@ class VulkanContext(
 
     class Frame(
         val commandBuffer: VulkanCommandBuffer,
+        val transferCommandBuffer: VulkanCommandBuffer,
         val imageAvailableSemaphore: VulkanSemaphore,
         val renderFinishedSemaphore: VulkanSemaphore,
         val inFlightFence: VulkanFence
@@ -75,23 +76,30 @@ class VulkanContext(
         }
     }
 
-    val vertexBuffer = device.buildVertexBuffer {
+    val vertexBuffer = device.buildStagedVertexBuffer {
         size = 3 * 5 * 4
     }.apply {
         upload(0, 3 * 5 * 4, floatArrayOf(0.0f, -0.5f, 1.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f))
     }
 
     var swapChain = device.buildSwapChain {
-        this.forceRenderAllPixels = forceRenderAllPixels
+        this.forceRenderAllPixels = this@VulkanContext.forceRenderAllPixels
         renderPass = graphicsPipeline.renderPass
     }
 
     val commandPool = device.buildCommandPool {  }
 
+    val transferCommandPool = device.buildCommandPool {
+        flags = flags or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+    }
+
+    val transferSemaphore = device.buildSemaphore()
+
     val frames = buildList {
         repeat(maxFramesInFlight) {
             add(Frame(
                 commandPool.buildCommandBuffer {  },
+                transferCommandPool.buildCommandBuffer {  },
                 device.buildSemaphore(),
                 device.buildSemaphore(),
                 device.buildFence {  }
@@ -139,6 +147,10 @@ class VulkanContext(
             return
         }
         frame.inFlightFence.reset()
+        frame.transferCommandBuffer.reset()
+        frame.transferCommandBuffer.record {
+            transferStagingBuffer(vertexBuffer)
+        }
         frame.commandBuffer.reset()
         frame.commandBuffer.record {
             renderPass(renderPass) {
@@ -148,11 +160,12 @@ class VulkanContext(
                     viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
                     scissorExtent = physicalDevice.surfaceCapabilities.extent
                     vertexCount = 3
-                    bindVertexBuffer(vertexBuffer)
+                    bindVertexBuffer(vertexBuffer.backingBuffer)
                 }
             }
         }
-        device.graphicsQueue.submit(listOf(frame.commandBuffer), listOf(frame.imageAvailableSemaphore), listOf(frame.renderFinishedSemaphore), frame.inFlightFence)
+        device.graphicsQueue.submit(listOf(frame.transferCommandBuffer), emptyList(), listOf(transferSemaphore))
+        device.graphicsQueue.submit(listOf(frame.commandBuffer), listOf(frame.imageAvailableSemaphore, transferSemaphore), listOf(frame.renderFinishedSemaphore), frame.inFlightFence)
         if (device.presentQueue.present(swapChain, imageIndex, listOf(frame.renderFinishedSemaphore))) {
             recreateSwapChain()
         }
@@ -165,7 +178,9 @@ class VulkanContext(
             it.imageAvailableSemaphore.close()
             it.inFlightFence.close()
         }
+        transferSemaphore.close()
         vertexBuffer.close()
+        transferCommandPool.close()
         commandPool.close()
         vertexShader.close()
         fragmentShader.close()
