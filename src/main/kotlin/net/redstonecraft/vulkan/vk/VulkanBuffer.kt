@@ -133,11 +133,4 @@ class VulkanIndexBuffer private constructor(device: VulkanLogicalDevice, size: L
 
 }
 
-class VulkanStagingBuffer<T: VulkanBuffer> internal constructor(device: VulkanLogicalDevice, val backingBuffer: T): VulkanBuffer(device, backingBuffer.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
-
-    override fun close() {
-        backingBuffer.close()
-        super.close()
-    }
-
-}
+class VulkanStagingBuffer<T: VulkanBuffer> internal constructor(device: VulkanLogicalDevice, val backingBuffer: T): VulkanBuffer(device, backingBuffer.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)

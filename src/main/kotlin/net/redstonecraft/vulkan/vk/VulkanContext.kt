@@ -102,6 +102,7 @@ class VulkanContext(
         }
         device.graphicsQueue.submit(listOf(transferCommandBuffer))
         device.waitIdle()
+        close()
     }
 
     var swapChain = device.buildSwapChain {
@@ -198,7 +199,7 @@ class VulkanContext(
             it.inFlightFence.close()
         }
         transferSemaphore.close()
-        indexBuffer.close()
+        indexBuffer.backingBuffer.close()
         vertexBuffer.close()
         transferCommandPool.close()
         commandPool.close()
