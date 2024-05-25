@@ -29,6 +29,14 @@ class VulkanFence private constructor(val device: VulkanLogicalDevice, flags: In
         }
     }
 
+    val isSignalled: Boolean
+        get() = vkGetFenceStatus(device.handle, handle).let {
+            if (it != VK_SUCCESS && it != VK_NOT_READY) {
+                throw VulkanException("vkGetFenceStatus failed", it)
+            }
+            it == VK_SUCCESS
+        }
+
     fun waitForFence(timeout: Long = Long.MAX_VALUE) {
         vkWaitForFences(device.handle, handle, true, timeout)
     }

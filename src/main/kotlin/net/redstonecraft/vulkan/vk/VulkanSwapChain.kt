@@ -64,7 +64,7 @@ class VulkanSwapChain private constructor(
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
                 .presentMode(device.physicalDevice.presentMode)
                 .clipped(!forceRenderAllPixels)
-                .oldSwapchain(VK_NULL_HANDLE)
+                .oldSwapchain(VK_NULL_HANDLE) // TODO: also check [acquireNextImage]
 
             if (device.physicalDevice.queueFamilyIndices.graphicsFamily != device.physicalDevice.queueFamilyIndices.presentFamily) {
                 val queueFamilyIndices = stack.callocInt(2)
