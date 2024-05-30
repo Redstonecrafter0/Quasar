@@ -66,13 +66,29 @@ class VulkanContext(
     val renderPass = device.buildRenderPass {
         val present = presentColorAttachment(device.physicalDevice.surfaceFormat!!.format) {}
 
-        graphicsSubpass {
+        val firstPass = graphicsSubpass {
             extent = physicalDevice.surfaceCapabilities!!.extent
             vertexShader = this@VulkanContext.vertexShader
             fragmentShader = this@VulkanContext.fragmentShader
             primitive = VulkanPrimitive.TRIANGLE
             culling = VulkanCulling.OFF
             wireframe = false
+
+            colorAttachmentRef(present)
+
+            binding(0, 5 * Float.SIZE_BYTES, InputRate.VERTEX) {
+                attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
+                attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * 4)
+            }
+        }
+        graphicsSubpass {
+            extent = physicalDevice.surfaceCapabilities!!.extent
+            vertexShader = this@VulkanContext.vertexShader
+            fragmentShader = this@VulkanContext.fragmentShader
+            primitive = VulkanPrimitive.TRIANGLE
+            culling = VulkanCulling.OFF
+            wireframe = true
+            dependsOn += firstPass
 
             colorAttachmentRef(present)
 
@@ -185,7 +201,15 @@ class VulkanContext(
                 graphicsPipeline {
 //                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
 //                    scissorExtent = physicalDevice.surfaceCapabilities.extent
-                    count = 6
+                    count = 3
+                    indexBuffer = this@VulkanContext.indexBuffer.backingBuffer
+                    bindVertexBuffer(vertexBuffer)
+                }
+                graphicsPipeline {
+//                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
+//                    scissorExtent = physicalDevice.surfaceCapabilities.extent
+                    count = 3
+                    first = 3
                     indexBuffer = this@VulkanContext.indexBuffer.backingBuffer
                     bindVertexBuffer(vertexBuffer)
                 }

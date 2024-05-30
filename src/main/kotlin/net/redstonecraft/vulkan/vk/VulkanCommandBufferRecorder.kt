@@ -28,7 +28,7 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
          * MUST be in the same order as when creating the [VulkanRenderPass]
          * */
         fun graphicsPipeline(block: GraphicsPipelineBuilder.() -> Unit) {
-            val builder = GraphicsPipelineBuilder(framebuffer.renderPass.subpasses[graphicsPipelines.size].pipeline)
+            val builder = GraphicsPipelineBuilder(framebuffer.renderPass.subpasses[graphicsPipelines.size])
             builder.block()
             graphicsPipelines += builder
         }

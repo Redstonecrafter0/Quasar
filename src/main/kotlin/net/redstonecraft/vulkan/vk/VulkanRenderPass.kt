@@ -1,6 +1,5 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.vk.data.SubpassInfo
 import net.redstonecraft.vulkan.vk.enums.VulkanAttachmentLoadOp
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
@@ -66,12 +65,12 @@ class VulkanRenderPass private constructor(
 
     override val handle: Long
 
-    internal val subpasses: List<SubpassInfo>
+    internal val subpasses: List<VulkanGraphicsPipeline>
 
     init {
         MemoryStack.stackPush().use { stack ->
-            val graphicsPipelineBuilders = graphicsPipelineBuilderBlocks.map {
-                VulkanGraphicsPipeline.Builder(this).apply(it)
+            val graphicsPipelineBuilders = graphicsPipelineBuilderBlocks.mapIndexed { index, it ->
+                VulkanGraphicsPipeline.Builder(this, index).apply(it)
             }
             val pAttachments = VkAttachmentDescription.calloc(attachments.size, stack)
             for (i in attachments) {
@@ -79,7 +78,8 @@ class VulkanRenderPass private constructor(
             }
             pAttachments.flip()
             val pSubPasses = VkSubpassDescription.calloc(graphicsPipelineBuilders.size, stack)
-            for (i in graphicsPipelineBuilders) {
+            val dependencies = mutableListOf<VkSubpassDependency>()
+            for ((index, i) in graphicsPipelineBuilders.withIndex()) {
                 val colorAttachmentRefs = VkAttachmentReference.calloc(i.attachmentRefs.size, stack)
                 for ((attachment, layout) in i.attachmentRefs) {
                     colorAttachmentRefs.put(VkAttachmentReference.calloc(stack)
@@ -93,40 +93,49 @@ class VulkanRenderPass private constructor(
                     .colorAttachmentCount(colorAttachmentRefs.capacity())
                     .pColorAttachments(colorAttachmentRefs)
                 pSubPasses.put(subPass)
+
+                if (i.dependsOn.isEmpty()) {
+                    dependencies += VkSubpassDependency.calloc(stack)
+                        .srcSubpass(VK_SUBPASS_EXTERNAL)
+                        .dstSubpass(index)
+                        .srcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
+                        .srcAccessMask(0)
+                        .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
+                        .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+                } else {
+                    for (j in i.dependsOn) {
+                        dependencies += VkSubpassDependency.calloc(stack)
+                            .srcSubpass(j)
+                            .dstSubpass(index)
+                            .srcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
+                            .srcAccessMask(0)
+                            .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
+                            .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+                    }
+                }
             }
             pSubPasses.flip()
-            val dependency = VkSubpassDependency.calloc(stack)
-                .srcSubpass(VK_SUBPASS_EXTERNAL)
-                .dstSubpass(0)
-                .srcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
-                .srcAccessMask(0)
-                .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
-                .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-            val dependencies = VkSubpassDependency.calloc(1, stack)
-                .put(dependency)
-                .flip()
+            val pDependencies = VkSubpassDependency.calloc(dependencies.size, stack)
+            for (i in dependencies) {
+                pDependencies.put(i)
+            }
+            pDependencies.flip()
             val renderPassInfo = VkRenderPassCreateInfo.calloc(stack).`sType$Default`()
                 .pAttachments(pAttachments)
                 .pSubpasses(pSubPasses)
-                .pDependencies(dependencies)
+                .pDependencies(pDependencies)
             val pRenderPass = stack.callocLong(1)
             val ret = vkCreateRenderPass(device.handle, renderPassInfo, null, pRenderPass)
             if (ret != VK_SUCCESS) {
                 throw VulkanException("vkCreateRenderPass failed", ret)
             }
             handle = pRenderPass.get(0)
-            subpasses = graphicsPipelineBuilders.mapIndexed { index, it -> SubpassInfo(it.build(), index) }
+            subpasses = graphicsPipelineBuilders.map { it.build() }
         }
     }
 
-    fun buildGraphicsPipeline(block: VulkanGraphicsPipeline.Builder.() -> Unit): VulkanGraphicsPipeline {
-        val builder = VulkanGraphicsPipeline.Builder(this)
-        builder.block()
-        return builder.build()
-    }
-
     override fun close() {
-        subpasses.forEach { it.pipeline.close() }
+        subpasses.forEach { it.close() }
         vkDestroyRenderPass(device.handle, handle, null)
     }
 

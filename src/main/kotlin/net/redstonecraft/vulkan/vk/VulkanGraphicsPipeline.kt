@@ -17,10 +17,11 @@ class VulkanGraphicsPipeline private constructor(
     culling: VulkanCulling,
     bindings: List<VkVertexInputBindingDescription>,
     attributes: List<VkVertexInputAttributeDescription>,
-    wireframe: Boolean
+    wireframe: Boolean,
+    subpass: Int
 ): IHandle<Long> {
 
-    class Builder internal constructor(private val renderPass: VulkanRenderPass) {
+    class Builder internal constructor(private val renderPass: VulkanRenderPass, private val subpass: Int) {
 
         inner class BindingBuilder internal constructor(private val binding: Int) {
             internal val attributes = mutableListOf<VkVertexInputAttributeDescription>()
@@ -65,6 +66,7 @@ class VulkanGraphicsPipeline private constructor(
         private val bindings = mutableListOf<VkVertexInputBindingDescription>()
         private val attributes = mutableListOf<VkVertexInputAttributeDescription>()
         internal val attachmentRefs = mutableListOf<Pair<Int, Int>>()
+        val dependsOn = mutableListOf<Int>()
         var extent: VkExtent2D? = null
         var vertexShader: VulkanVertexShaderModule? = null
         var fragmentShader: VulkanFragmentShaderModule? = null
@@ -77,7 +79,7 @@ class VulkanGraphicsPipeline private constructor(
             requireNotNull(fragmentShader) { "fragmentShader must be not null" }
             requireNotNull(primitive) { "primitive must be not null" }
             requireNotNull(culling) { "culling must be not null" }
-            return VulkanGraphicsPipeline(renderPass, extent, vertexShader!!, fragmentShader!!, primitive!!, culling!!, bindings, attributes, wireframe)
+            return VulkanGraphicsPipeline(renderPass, extent, vertexShader!!, fragmentShader!!, primitive!!, culling!!, bindings, attributes, wireframe, subpass)
         }
     }
 
@@ -185,7 +187,7 @@ class VulkanGraphicsPipeline private constructor(
                 .pDynamicState(if (extent == null) dynamicState else null)
                 .layout(pipelineLayout.handle)
                 .renderPass(renderPass.handle)
-                .subpass(0)
+                .subpass(subpass)
                 .basePipelineHandle(VK_NULL_HANDLE)
                 .basePipelineIndex(-1)
             val pipelineInfos = VkGraphicsPipelineCreateInfo.calloc(1, stack)

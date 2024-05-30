@@ -22,6 +22,7 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
             val queueCreateInfos = buildQueueCreateInfo(queueFamilySet, stack)
             val pExtensionNames = buildExtensionNames(stack, physicalDevice.extensions)
             val deviceFeatures = VkPhysicalDeviceFeatures.calloc(stack)
+                .fillModeNonSolid(true)
             val createInfo = VkDeviceCreateInfo.calloc(stack).`sType$Default`()
                 .pQueueCreateInfos(queueCreateInfos)
                 .pEnabledFeatures(deviceFeatures)

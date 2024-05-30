@@ -6,6 +6,7 @@ import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkExtensionProperties
 import org.lwjgl.vulkan.VkPhysicalDevice
+import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties
 import org.lwjgl.vulkan.VkPhysicalDeviceProperties
 import java.nio.ByteBuffer
