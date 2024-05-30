@@ -2,11 +2,11 @@ package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkExtent2D
 import org.lwjgl.vulkan.VkFramebufferCreateInfo
 
-class VulkanFramebuffer private constructor(val device: VulkanLogicalDevice, extent: VkExtent2D, imageView: VulkanImageView, renderPass: VulkanRenderPass): IHandle<Long> {
+class VulkanFramebuffer private constructor(val device: VulkanLogicalDevice, extent: VkExtent2D, imageView: VulkanImageView, val renderPass: VulkanRenderPass): IHandle<Long> {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
 
@@ -33,8 +33,6 @@ class VulkanFramebuffer private constructor(val device: VulkanLogicalDevice, ext
                 .renderPass(renderPass.handle)
                 .attachmentCount(attachments.capacity())
                 .pAttachments(attachments)
-//                .width(swapChain.device.physicalDevice.surfaceCapabilities!!.extent.width())
-//                .height(swapChain.device.physicalDevice.surfaceCapabilities.extent.height())
                 .width(extent.width())
                 .height(extent.height())
                 .layers(1)

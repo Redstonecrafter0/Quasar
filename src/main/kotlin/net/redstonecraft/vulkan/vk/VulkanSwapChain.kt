@@ -4,29 +4,26 @@ import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
 import kotlin.math.min
 
 class VulkanSwapChain private constructor(
     val device: VulkanLogicalDevice,
-    forceRenderAllPixels: Boolean,
-    renderPass: VulkanRenderPass
+    forceRenderAllPixels: Boolean
 ): IHandle<Long> {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
         var forceRenderAllPixels: Boolean = false
-        var renderPass: VulkanRenderPass? = null
 
         internal fun build(): VulkanSwapChain {
-            requireNotNull(renderPass) { "renderPass must be not null" }
-            return VulkanSwapChain(device, forceRenderAllPixels, renderPass!!)
+            return VulkanSwapChain(device, forceRenderAllPixels)
         }
     }
 
     override val handle: Long
+    val images: List<VulkanImage>
     val imageViews: List<VulkanImageView>
-    val framebuffers: List<VulkanFramebuffer>
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -66,12 +63,14 @@ class VulkanSwapChain private constructor(
                 .clipped(!forceRenderAllPixels)
                 .oldSwapchain(VK_NULL_HANDLE) // TODO: also check [acquireNextImage]
 
-            if (device.physicalDevice.queueFamilyIndices.graphicsFamily != device.physicalDevice.queueFamilyIndices.presentFamily) {
-                val queueFamilyIndices = stack.callocInt(2)
-                queueFamilyIndices.put(device.physicalDevice.queueFamilyIndices.graphicsFamily!!, device.physicalDevice.queueFamilyIndices.presentFamily!!)
+            if (device.physicalDevice.queueFamilyIndices.graphicsFamily != device.physicalDevice.queueFamilyIndices.presentFamily && device.physicalDevice.queueFamilyIndices.graphicsFamily != device.physicalDevice.queueFamilyIndices.computeFamily) {
+                val queueFamilyIndices = stack.callocInt(3)
+                queueFamilyIndices.put(device.physicalDevice.queueFamilyIndices.graphicsFamily!!)
+                queueFamilyIndices.put(device.physicalDevice.queueFamilyIndices.presentFamily!!)
+                queueFamilyIndices.put(device.physicalDevice.queueFamilyIndices.computeFamily!!)
                 queueFamilyIndices.flip()
                 createInfo.imageSharingMode(VK_SHARING_MODE_CONCURRENT)
-                    .queueFamilyIndexCount(2)
+                    .queueFamilyIndexCount(3)
                     .pQueueFamilyIndices(queueFamilyIndices)
             } else {
                 createInfo.imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
@@ -87,20 +86,14 @@ class VulkanSwapChain private constructor(
 
             val pImageCount = stack.callocInt(1)
             vkGetSwapchainImagesKHR(device.handle, handle, pImageCount, null)
-            val images = stack.callocLong(pImageCount.get(0))
-            vkGetSwapchainImagesKHR(device.handle, handle, pImageCount, images)
+            val pImages = stack.callocLong(pImageCount.get(0))
+            vkGetSwapchainImagesKHR(device.handle, handle, pImageCount, pImages)
 
-            imageViews = (0 until images.capacity()).map {
+            images = (0 until pImages.capacity()).map { VulkanImage(pImages.get(it)) }
+            imageViews = images.map {
                 device.buildImageView {
-                    image = images.get(it)
+                    image = it.handle
                     format = device.physicalDevice.surfaceFormat.format
-                }
-            }
-            framebuffers = imageViews.map {
-                device.buildFramebuffer {
-                    extent = device.physicalDevice.surfaceCapabilities.extent
-                    imageView = it
-                    this.renderPass = renderPass
                 }
             }
         }
@@ -122,7 +115,6 @@ class VulkanSwapChain private constructor(
     }
 
     override fun close() {
-        framebuffers.forEach { it.close() }
         imageViews.forEach { it.close() }
         vkDestroySwapchainKHR(device.handle, handle, null)
     }

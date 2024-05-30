@@ -2,7 +2,7 @@ package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo
 
 class VulkanCommandPool private constructor(val device: VulkanLogicalDevice, flags: Int): IHandle<Long> {
@@ -29,7 +29,7 @@ class VulkanCommandPool private constructor(val device: VulkanLogicalDevice, fla
         }
     }
 
-    fun buildCommandBuffer(block: VulkanCommandBuffer.Builder.() -> Unit): VulkanCommandBuffer {
+    fun buildCommandBuffer(block: VulkanCommandBuffer.Builder.() -> Unit = {}): VulkanCommandBuffer {
         val builder = VulkanCommandBuffer.Builder(this)
         builder.block()
         return builder.build()

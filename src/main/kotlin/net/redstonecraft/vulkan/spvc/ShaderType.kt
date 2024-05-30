@@ -1,7 +1,7 @@
 package net.redstonecraft.vulkan.spvc
 
 import org.lwjgl.util.shaderc.Shaderc.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 
 enum class ShaderType(val shadercType: Int, val stage: Int) {
     VERTEX(shaderc_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT),

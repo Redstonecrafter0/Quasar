@@ -4,7 +4,7 @@ import net.redstonecraft.vulkan.spvc.SPIRVCompiler
 import net.redstonecraft.vulkan.spvc.ShaderType
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 import org.lwjgl.vulkan.VkShaderModuleCreateInfo
 

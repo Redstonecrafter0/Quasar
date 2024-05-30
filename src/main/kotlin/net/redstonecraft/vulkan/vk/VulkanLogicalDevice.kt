@@ -5,7 +5,7 @@ import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.*
 import org.lwjgl.vulkan.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 
 class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysicalDevice): IHandle<VkDevice> {
 
@@ -16,6 +16,7 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
         MemoryStack.stackPush().use { stack ->
             val queueFamilySet = setOfNotNull(
                 physicalDevice.queueFamilyIndices.graphicsFamily,
+                physicalDevice.queueFamilyIndices.computeFamily,
                 physicalDevice.queueFamilyIndices.presentFamily
             )
             val queueCreateInfos = buildQueueCreateInfo(queueFamilySet, stack)
@@ -40,6 +41,7 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
     }
 
     val graphicsQueue by lazy { queues[physicalDevice.queueFamilyIndices.graphicsFamily]!! }
+    val computeQueue by lazy { queues[physicalDevice.queueFamilyIndices.computeFamily]!! }
     val presentQueue by lazy { queues[physicalDevice.queueFamilyIndices.presentFamily]!! }
 
     private fun buildQueueCreateInfo(queueFamilySet: Set<Int>, stack: MemoryStack): VkDeviceQueueCreateInfo.Buffer {
@@ -116,6 +118,7 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
 
     fun buildVertexBuffer(block: VulkanVertexBuffer.Builder.() -> Unit): VulkanVertexBuffer {
         val builder = VulkanVertexBuffer.Builder(this)
+        builder.localMemory = false
         builder.block()
         return builder.build()
     }
@@ -124,11 +127,14 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
      * the [VulkanStagingBuffer.backingBuffer] must be manually [VulkanStagingBuffer.close]d
      * */
     fun buildStagedVertexBuffer(block: VulkanVertexBuffer.Builder.() -> Unit): VulkanStagingBuffer<VulkanVertexBuffer> {
-        return VulkanStagingBuffer(this, buildVertexBuffer(block))
+        val builder = VulkanVertexBuffer.Builder(this)
+        builder.block()
+        return VulkanStagingBuffer(this, builder.build())
     }
 
     fun buildIndexBuffer(block: VulkanIndexBuffer.Builder.() -> Unit): VulkanIndexBuffer {
         val builder = VulkanIndexBuffer.Builder(this)
+        builder.localMemory = false
         builder.block()
         return builder.build()
     }
@@ -137,10 +143,12 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
      * the [VulkanStagingBuffer.backingBuffer] must be manually [VulkanStagingBuffer.close]d
      * */
     fun buildStagedIndexBuffer(block: VulkanIndexBuffer.Builder.() -> Unit): VulkanStagingBuffer<VulkanIndexBuffer> {
-        return VulkanStagingBuffer(this, buildIndexBuffer(block))
+        val builder = VulkanIndexBuffer.Builder(this)
+        builder.block()
+        return VulkanStagingBuffer(this, builder.build())
     }
 
-    fun buildFence(block: VulkanFence.Builder.() -> Unit): VulkanFence {
+    fun buildFence(block: VulkanFence.Builder.() -> Unit = {}): VulkanFence {
         val builder = VulkanFence.Builder(this)
         builder.block()
         return builder.build()

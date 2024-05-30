@@ -3,7 +3,7 @@ package net.redstonecraft.vulkan.vk
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.EXTSwapchainColorspace.*
 import org.lwjgl.vulkan.KHRSurface.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkSurfaceFormatKHR
 
 class VulkanSurfaceFormat internal constructor(physicalDevice: VulkanPhysicalDevice, surface: VulkanSurface, hdr: Boolean) {

@@ -5,7 +5,7 @@ import org.lwjgl.glfw.GLFWVulkan.*
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.EXTDebugUtils.*
 import org.lwjgl.vulkan.EXTSwapchainColorspace.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkApplicationInfo
 import org.lwjgl.vulkan.VkInstance
 import org.lwjgl.vulkan.VkInstanceCreateInfo
@@ -55,10 +55,10 @@ class VulkanInstance private constructor(
             val pEngineName = stack.UTF8(engineName)
             val appInfo = VkApplicationInfo.calloc(stack).`sType$Default`()
                 .pApplicationName(pAppName)
-                .applicationVersion(VK_MAKE_VERSION(appVersion.first, appVersion.second, appVersion.third))
+                .applicationVersion(VK_MAKE_API_VERSION(0, appVersion.first, appVersion.second, appVersion.third))
                 .pEngineName(pEngineName)
-                .engineVersion(VK_MAKE_VERSION(engineVersion.first, engineVersion.second, engineVersion.third))
-                .apiVersion(VK_API_VERSION_1_2)
+                .engineVersion(VK_MAKE_API_VERSION(0, engineVersion.first, engineVersion.second, engineVersion.third))
+                .apiVersion(VK_API_VERSION_1_3)
             if (debug) {
                 extensions += VK_EXT_DEBUG_UTILS_EXTENSION_NAME
             }

@@ -6,17 +6,18 @@ import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 
 class VulkanGraphicsPipeline private constructor(
     val renderPass: VulkanRenderPass,
-    extent: VkExtent2D,
+    extent: VkExtent2D?, // TODO: revisit dynamic states
     vertexShader: VulkanVertexShaderModule,
     fragmentShader: VulkanFragmentShaderModule,
     primitive: VulkanPrimitive,
     culling: VulkanCulling,
     bindings: List<VkVertexInputBindingDescription>,
-    attributes: List<VkVertexInputAttributeDescription>
+    attributes: List<VkVertexInputAttributeDescription>,
+    wireframe: Boolean
 ): IHandle<Long> {
 
     class Builder internal constructor(private val renderPass: VulkanRenderPass) {
@@ -55,23 +56,28 @@ class VulkanGraphicsPipeline private constructor(
             attributes += builder.attributes
         }
 
+        fun colorAttachmentRef(attachment: Int) {
+            attachmentRefs += attachment to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        }
+
         private val stack = MemoryStack.stackPush()
 
         private val bindings = mutableListOf<VkVertexInputBindingDescription>()
         private val attributes = mutableListOf<VkVertexInputAttributeDescription>()
+        internal val attachmentRefs = mutableListOf<Pair<Int, Int>>()
         var extent: VkExtent2D? = null
         var vertexShader: VulkanVertexShaderModule? = null
         var fragmentShader: VulkanFragmentShaderModule? = null
         var primitive: VulkanPrimitive? = null
         var culling: VulkanCulling? = null
+        var wireframe = false
 
         internal fun build(): VulkanGraphicsPipeline {
-            requireNotNull(extent) { "extent must be not null" }
             requireNotNull(vertexShader) { "vertexShader must be not null" }
             requireNotNull(fragmentShader) { "fragmentShader must be not null" }
             requireNotNull(primitive) { "primitive must be not null" }
             requireNotNull(culling) { "culling must be not null" }
-            return VulkanGraphicsPipeline(renderPass, extent!!, vertexShader!!, fragmentShader!!, primitive!!, culling!!, bindings, attributes)
+            return VulkanGraphicsPipeline(renderPass, extent, vertexShader!!, fragmentShader!!, primitive!!, culling!!, bindings, attributes, wireframe)
         }
     }
 
@@ -106,27 +112,35 @@ class VulkanGraphicsPipeline private constructor(
             val inputAssembly = VkPipelineInputAssemblyStateCreateInfo.calloc(stack).`sType$Default`()
                 .topology(primitive.primitive)
                 .primitiveRestartEnable(false)
-            val viewport = VkViewport.calloc(stack)
-                .x(0F)
-                .y(0F)
-                .width(extent.width().toFloat())
-                .height(extent.height().toFloat())
-                .minDepth(0F)
-                .maxDepth(1F)
-            val scissorOffset = VkOffset2D.calloc(stack)
-                .x(0)
-                .y(0)
-            val scissor = VkRect2D.calloc(stack)
-                .offset(scissorOffset)
-//                .extent(swapChain.renderPass.device.physicalDevice.surfaceCapabilities.extent)
-                .extent(extent)
             val viewportState = VkPipelineViewportStateCreateInfo.calloc(stack).`sType$Default`()
                 .viewportCount(1)
                 .scissorCount(1)
+            if (extent != null) {
+                val viewport = VkViewport.calloc(stack)
+                    .x(0F)
+                    .y(0F)
+                    .width(extent.width().toFloat())
+                    .height(extent.height().toFloat())
+                    .minDepth(0F)
+                    .maxDepth(1F)
+                val scissorOffset = VkOffset2D.calloc(stack)
+                    .x(0)
+                    .y(0)
+                val scissor = VkRect2D.calloc(stack)
+                    .offset(scissorOffset)
+                    .extent(extent)
+                val pViewports = VkViewport.calloc(1, stack)
+                    .put(viewport)
+                    .flip()
+                val pScissors = VkRect2D.calloc(1, stack)
+                    .put(scissor)
+                    .flip()
+                viewportState.pViewports(pViewports).pScissors(pScissors)
+            }
             val rasterizer = VkPipelineRasterizationStateCreateInfo.calloc(stack).`sType$Default`()
                 .depthClampEnable(false)
                 .rasterizerDiscardEnable(false)
-                .polygonMode(VK_POLYGON_MODE_FILL)
+                .polygonMode(if (wireframe) VK_POLYGON_MODE_LINE else VK_POLYGON_MODE_FILL)
                 .lineWidth(1F)
                 .cullMode(culling.cullMode)
                 .frontFace(VK_FRONT_FACE_CLOCKWISE)
@@ -168,7 +182,7 @@ class VulkanGraphicsPipeline private constructor(
                 .pMultisampleState(multiSampling)
                 .pDepthStencilState(null)
                 .pColorBlendState(colorBlending)
-                .pDynamicState(dynamicState)
+                .pDynamicState(if (extent == null) dynamicState else null)
                 .layout(pipelineLayout.handle)
                 .renderPass(renderPass.handle)
                 .subpass(0)

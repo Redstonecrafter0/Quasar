@@ -2,7 +2,7 @@ package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkComponentMapping
 import org.lwjgl.vulkan.VkImageSubresourceRange
 import org.lwjgl.vulkan.VkImageViewCreateInfo

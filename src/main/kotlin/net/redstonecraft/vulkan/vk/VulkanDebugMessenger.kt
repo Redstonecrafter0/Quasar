@@ -2,7 +2,7 @@ package net.redstonecraft.vulkan.vk
 
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.EXTDebugUtils.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT
 import java.io.Closeable

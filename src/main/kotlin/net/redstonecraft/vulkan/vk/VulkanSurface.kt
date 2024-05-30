@@ -4,7 +4,7 @@ import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.glfw.GLFWVulkan.*
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSurface.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 
 class VulkanSurface private constructor(val instance: VulkanInstance, val window: Long): IHandle<Long> {
 

@@ -7,7 +7,7 @@ import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSwapchain.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import java.io.Closeable
 
 class VulkanContext(
@@ -26,11 +26,10 @@ class VulkanContext(
 ): Closeable {
 
     class Frame(
-        val commandBuffer: VulkanCommandBuffer,
-        val transferCommandBuffer: VulkanCommandBuffer,
-        val imageAvailableSemaphore: VulkanSemaphore,
-        val renderFinishedSemaphore: VulkanSemaphore,
-        val inFlightFence: VulkanFence
+        val swapChainSemaphore: VulkanSemaphore,
+        val renderSemaphore: VulkanSemaphore,
+        val renderFence: VulkanFence,
+        val commandBuffer: VulkanCommandBuffer
     )
 
     val instance = VulkanInstance.build {
@@ -49,9 +48,7 @@ class VulkanContext(
 
     val device = physicalDevice.buildLogicalDevice()
 
-    val renderPass = device.buildRenderPass {
-        format = device.physicalDevice.surfaceFormat!!.format
-    }
+
 
     val vertexShader = device.buildVertexShaderModule {
         shaderCompiler = this@VulkanContext.shaderCompiler
@@ -63,16 +60,26 @@ class VulkanContext(
         this.path = "${shaderPath.removeSuffix("/")}/frag.glsl"
     }
 
-    val graphicsPipeline = renderPass.buildGraphicsPipeline {
-        extent = physicalDevice.surfaceCapabilities!!.extent
-        vertexShader = this@VulkanContext.vertexShader
-        fragmentShader = this@VulkanContext.fragmentShader
-        primitive = VulkanPrimitive.TRIANGLE
-        culling = VulkanCulling.OFF
+    val commandPool = device.buildCommandPool {  }
 
-        binding(0, 5 * 4, InputRate.VERTEX) {
-            attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
-            attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * 4)
+
+    val renderPass = device.buildRenderPass {
+        val present = presentColorAttachment(device.physicalDevice.surfaceFormat!!.format) {}
+
+        graphicsSubpass {
+            extent = physicalDevice.surfaceCapabilities!!.extent
+            vertexShader = this@VulkanContext.vertexShader
+            fragmentShader = this@VulkanContext.fragmentShader
+            primitive = VulkanPrimitive.TRIANGLE
+            culling = VulkanCulling.OFF
+            wireframe = false
+
+            colorAttachmentRef(present)
+
+            binding(0, 5 * Float.SIZE_BYTES, InputRate.VERTEX) {
+                attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
+                attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * 4)
+            }
         }
     }
 
@@ -82,7 +89,7 @@ class VulkanContext(
 
     val transferCommandBuffer = transferCommandPool.buildCommandBuffer {  }
 
-    val vertexBuffer = device.buildStagedVertexBuffer {
+    val vertexBuffer = device.buildVertexBuffer {
         size = 4L * 5 * Float.SIZE_BYTES
     }.apply {
         upload(0, 4 * 5, floatArrayOf(
@@ -107,26 +114,28 @@ class VulkanContext(
 
     var swapChain = device.buildSwapChain {
         this.forceRenderAllPixels = this@VulkanContext.forceRenderAllPixels
-        renderPass = graphicsPipeline.renderPass
     }
 
-    val commandPool = device.buildCommandPool {  }
-
-    val transferSemaphore = device.buildSemaphore()
+    val framebuffers = swapChain.imageViews.map {
+        device.buildFramebuffer {
+            extent = device.physicalDevice.surfaceCapabilities!!.extent
+            imageView = it
+            this.renderPass = this@VulkanContext.renderPass
+        }
+    }
 
     val frames = buildList {
         repeat(maxFramesInFlight) {
             add(Frame(
-                commandPool.buildCommandBuffer {  },
-                transferCommandPool.buildCommandBuffer {  },
                 device.buildSemaphore(),
                 device.buildSemaphore(),
-                device.buildFence {  }
+                device.buildFence(),
+                commandPool.buildCommandBuffer()
             ))
         }
     }
 
-    var frame = 0
+    var frameI = 0
 
     fun notifyResize() {
         MemoryStack.stackPush().use { stack ->
@@ -149,66 +158,63 @@ class VulkanContext(
         swapChain.close()
         swapChain = device.buildSwapChain {
             this.forceRenderAllPixels = this@VulkanContext.forceRenderAllPixels
-            renderPass = graphicsPipeline.renderPass
         }
     }
 
+    var firstFrame = true
+
     fun drawFrame() {
-        frame++
-        if (frame >= maxFramesInFlight) {
-            frame = 0
+        frameI++
+        if (frameI >= maxFramesInFlight) {
+            frameI = 0
         }
-        val frame = frames[frame]
-        frame.inFlightFence.waitForFence()
-        val imageIndex = swapChain.acquireNextImage(frame.imageAvailableSemaphore)
+        frameI %= maxFramesInFlight
+        val frame = frames[frameI]
+        val nextFrame = frames[(frameI + 1) % maxFramesInFlight]
+        nextFrame.renderFence.waitForFence()
+        nextFrame.renderFence.reset()
+        val imageIndex = swapChain.acquireNextImage(nextFrame.swapChainSemaphore)
         if (imageIndex == null) {
             recreateSwapChain()
             return
         }
-        frame.inFlightFence.reset()
-        frame.transferCommandBuffer.reset()
-        frame.transferCommandBuffer.record {
-            transferStagingBuffer(vertexBuffer)
-        }
-        frame.commandBuffer.reset()
-        frame.commandBuffer.record {
-            renderPass(renderPass) {
-                framebuffer = swapChain.framebuffers[imageIndex]
+        nextFrame.commandBuffer.reset()
+        nextFrame.commandBuffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) {
+            renderPass(framebuffers[imageIndex]) {
                 extent = physicalDevice.surfaceCapabilities!!.extent
-                graphicsPipeline(graphicsPipeline) {
-                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
-                    scissorExtent = physicalDevice.surfaceCapabilities.extent
+                graphicsPipeline {
+//                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
+//                    scissorExtent = physicalDevice.surfaceCapabilities.extent
                     count = 6
                     indexBuffer = this@VulkanContext.indexBuffer.backingBuffer
-                    bindVertexBuffer(vertexBuffer.backingBuffer)
+                    bindVertexBuffer(vertexBuffer)
                 }
             }
         }
-        device.graphicsQueue.submit(listOf(frame.transferCommandBuffer), emptyList(), listOf(transferSemaphore))
-        device.graphicsQueue.submit(listOf(frame.commandBuffer), listOf(frame.imageAvailableSemaphore, transferSemaphore), listOf(frame.renderFinishedSemaphore), frame.inFlightFence)
-        if (device.presentQueue.present(swapChain, imageIndex, listOf(frame.renderFinishedSemaphore))) {
+        device.graphicsQueue.submit(listOf(nextFrame.commandBuffer), listOf(nextFrame.swapChainSemaphore), listOf(nextFrame.renderSemaphore), nextFrame.renderFence)
+        if (!firstFrame && device.presentQueue.present(swapChain, imageIndex, listOf(frame.renderSemaphore))) {
             recreateSwapChain()
+        } else {
+            firstFrame = false
         }
     }
 
     override fun close() {
         device.waitIdle()
         frames.forEach {
-            it.renderFinishedSemaphore.close()
-            it.imageAvailableSemaphore.close()
-            it.inFlightFence.close()
+            it.renderSemaphore.close()
+            it.swapChainSemaphore.close()
+            it.renderFence.close()
         }
-        transferSemaphore.close()
+        framebuffers.forEach { it.close() }
         indexBuffer.backingBuffer.close()
         vertexBuffer.close()
-        vertexBuffer.backingBuffer.close()
         transferCommandPool.close()
         commandPool.close()
         vertexShader.close()
         fragmentShader.close()
         shaderCompiler.close()
         renderPass.close()
-        graphicsPipeline.close()
         swapChain.close()
         device.close()
         surface.close()

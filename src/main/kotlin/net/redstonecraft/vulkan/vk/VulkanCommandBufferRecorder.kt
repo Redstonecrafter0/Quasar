@@ -3,7 +3,7 @@ package net.redstonecraft.vulkan.vk
 import net.redstonecraft.vulkan.util.Color
 import net.redstonecraft.vulkan.vk.data.BufferCopyLocations
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkBufferCopy
 import org.lwjgl.vulkan.VkClearColorValue
 import org.lwjgl.vulkan.VkClearValue
@@ -16,23 +16,24 @@ import kotlin.math.min
 
 class VulkanCommandBufferRecorder internal constructor(private val commandBuffer: VulkanCommandBuffer) {
 
-    inner class RenderPassBuilder internal constructor(val renderPass: VulkanRenderPass) {
+    inner class RenderPassBuilder internal constructor(val framebuffer: VulkanFramebuffer) {
 
         private val graphicsPipelines = mutableListOf<GraphicsPipelineBuilder>()
 
-        var framebuffer: VulkanFramebuffer? = null
         var offset: Pair<Int, Int> = 0 to 0
         var extent: VkExtent2D? = null
         var clearColor: Color = Color(0F, 0F, 0F, 1F)
 
-        fun graphicsPipeline(graphicsPipeline: VulkanGraphicsPipeline, block: GraphicsPipelineBuilder.() -> Unit) {
-            val builder = GraphicsPipelineBuilder(graphicsPipeline)
+        /**
+         * MUST be in the same order as when creating the [VulkanRenderPass]
+         * */
+        fun graphicsPipeline(block: GraphicsPipelineBuilder.() -> Unit) {
+            val builder = GraphicsPipelineBuilder(framebuffer.renderPass.subpasses[graphicsPipelines.size].pipeline)
             builder.block()
             graphicsPipelines += builder
         }
 
         internal fun build() {
-            requireNotNull(framebuffer) { "framebuffer must be not null" }
             requireNotNull(extent) { "extent must be not null" }
             MemoryStack.stackPush().use { stack ->
                 val offset = VkOffset2D.calloc(stack)
@@ -55,12 +56,18 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
                     .put(clearValue)
                     .flip()
                 val renderPassInfo = VkRenderPassBeginInfo.calloc(stack).`sType$Default`()
-                    .renderPass(renderPass.handle)
-                    .framebuffer(framebuffer!!.handle)
+                    .renderPass(framebuffer.renderPass.handle)
+                    .framebuffer(framebuffer.handle)
                     .renderArea(renderArea)
                     .pClearValues(clearValueBuffer)
                 vkCmdBeginRenderPass(commandBuffer.handle, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE)
-                graphicsPipelines.forEach { it.build() }
+                graphicsPipelines.first().build()
+                if (graphicsPipelines.size > 1) {
+                    for (i in 1..graphicsPipelines.lastIndex) {
+                        vkCmdNextSubpass(commandBuffer.handle, VK_SUBPASS_CONTENTS_INLINE)
+                        graphicsPipelines[i].build()
+                    }
+                }
                 vkCmdEndRenderPass(commandBuffer.handle)
             }
         }
@@ -93,32 +100,34 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
             }
 
             fun build() {
-                requireNotNull(viewportSize) { "viewportSize must be not null" }
-                requireNotNull(scissorExtent) { "scissorExtent must be not null" }
                 requireNotNull(count) { "vertexCount must be not null" }
                 MemoryStack.stackPush().use { stack ->
                     vkCmdBindPipeline(commandBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.handle)
-                    val viewport = VkViewport.calloc(stack)
-                        .x(viewportPos.first)
-                        .y(viewportPos.second)
-                        .width(viewportSize!!.first)
-                        .height(viewportSize!!.second)
-                        .minDepth(viewportDepth.first)
-                        .maxDepth(viewportDepth.second)
-                    val viewports = VkViewport.calloc(1, stack)
-                        .put(viewport)
-                        .flip()
-                    vkCmdSetViewport(commandBuffer.handle, 0, viewports)
-                    val offset = VkOffset2D.calloc(stack)
-                        .x(scissorPos.first)
-                        .y(scissorPos.second)
-                    val scissor = VkRect2D.calloc(stack)
-                        .offset(offset)
-                        .extent(scissorExtent!!)
-                    val scissors = VkRect2D.calloc(1, stack)
-                        .put(scissor)
-                        .flip()
-                    vkCmdSetScissor(commandBuffer.handle, 0, scissors)
+                    if (viewportSize != null) {
+                        val viewport = VkViewport.calloc(stack)
+                            .x(viewportPos.first)
+                            .y(viewportPos.second)
+                            .width(viewportSize!!.first)
+                            .height(viewportSize!!.second)
+                            .minDepth(viewportDepth.first)
+                            .maxDepth(viewportDepth.second)
+                        val viewports = VkViewport.calloc(1, stack)
+                            .put(viewport)
+                            .flip()
+                        vkCmdSetViewport(commandBuffer.handle, 0, viewports)
+                    }
+                    if (scissorExtent != null) {
+                        val offset = VkOffset2D.calloc(stack)
+                            .x(scissorPos.first)
+                            .y(scissorPos.second)
+                        val scissor = VkRect2D.calloc(stack)
+                            .offset(offset)
+                            .extent(scissorExtent!!)
+                        val scissors = VkRect2D.calloc(1, stack)
+                            .put(scissor)
+                            .flip()
+                        vkCmdSetScissor(commandBuffer.handle, 0, scissors)
+                    }
                     val pVertexBuffers = stack.callocLong(vertexBuffers.size)
                     val pOffsets = stack.callocLong(vertexBuffers.size)
                     for (i in vertexBuffers) {
@@ -144,11 +153,10 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
 
     }
 
-    fun renderPass(renderPass: VulkanRenderPass, block: RenderPassBuilder.() -> Unit): VulkanCommandBufferRecorder {
-        val builder = RenderPassBuilder(renderPass)
+    fun renderPass(framebuffer: VulkanFramebuffer, block: RenderPassBuilder.() -> Unit) {
+        val builder = RenderPassBuilder(framebuffer)
         builder.block()
         builder.build()
-        return this
     }
 
     fun copyBuffer(

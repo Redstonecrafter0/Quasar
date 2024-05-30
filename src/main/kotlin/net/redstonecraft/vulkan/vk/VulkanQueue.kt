@@ -3,7 +3,7 @@ package net.redstonecraft.vulkan.vk
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSwapchain.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkPresentInfoKHR
 import org.lwjgl.vulkan.VkQueue
 import org.lwjgl.vulkan.VkSubmitInfo

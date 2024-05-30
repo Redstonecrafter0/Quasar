@@ -2,7 +2,7 @@ package net.redstonecraft.vulkan.vk
 
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSurface.*
-import org.lwjgl.vulkan.VK12.*
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkQueueFamilyProperties
 
 class VulkanQueueFamilyIndices internal constructor(physicalDevice: VulkanPhysicalDevice, private val surface: VulkanSurface?) {
@@ -11,9 +11,11 @@ class VulkanQueueFamilyIndices internal constructor(physicalDevice: VulkanPhysic
         private set
     var presentFamily: Int? = null
         private set
+    var computeFamily: Int? = null
+        private set
 
     val isValid: Boolean
-        get() = this.graphicsFamily != null && (surface == null || this.presentFamily != null)
+        get() = this.graphicsFamily != null && this.computeFamily != null && (surface == null || this.presentFamily != null)
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -27,6 +29,9 @@ class VulkanQueueFamilyIndices internal constructor(physicalDevice: VulkanPhysic
                 val flags = cQueueFamily.queueFlags()
                 if (this.graphicsFamily == null && ((flags and VK_QUEUE_GRAPHICS_BIT) != 0)) {
                     this.graphicsFamily = i
+                }
+                if (this.computeFamily == null && ((flags and VK_QUEUE_COMPUTE_BIT) != 0)) {
+                    this.computeFamily = i
                 }
                 if (surface != null && this.presentFamily == null) {
                     val pPresentSupport = stack.callocInt(1)
