@@ -18,6 +18,7 @@ dependencies {
     runtimeOnly(variantOf(libs.lwjgl.shaderc) { classifier(natives) })
     runtimeOnly(variantOf(libs.lwjgl.glfw) { classifier(natives) })
     runtimeOnly(variantOf(libs.lwjgl.jemalloc) { classifier(natives) })
+    runtimeOnly(variantOf(libs.lwjgl.vma) { classifier(natives) })
 }
 
 kotlin {
