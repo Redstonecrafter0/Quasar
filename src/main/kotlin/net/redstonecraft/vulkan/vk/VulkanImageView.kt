@@ -7,19 +7,7 @@ import org.lwjgl.vulkan.VkComponentMapping
 import org.lwjgl.vulkan.VkImageSubresourceRange
 import org.lwjgl.vulkan.VkImageViewCreateInfo
 
-class VulkanImageView private constructor(val device: VulkanLogicalDevice, image: Long, val format: Int): IHandle<Long> {
-
-    class Builder internal constructor(private val device: VulkanLogicalDevice) {
-
-        var image: Long? = null
-        var format: Int? = null
-
-        internal fun build(): VulkanImageView {
-            requireNotNull(image) { "image must be not null" }
-            requireNotNull(format) { "image must be not null" }
-            return VulkanImageView(device, image!!, format!!)
-        }
-    }
+class VulkanImageView internal constructor(val device: VulkanLogicalDevice, image: VulkanImage): IHandle<Long> {
 
     override val handle: Long
 
@@ -37,9 +25,9 @@ class VulkanImageView private constructor(val device: VulkanLogicalDevice, image
                 .baseArrayLayer(0)
                 .layerCount(1)
             val createInfo = VkImageViewCreateInfo.calloc(stack).`sType$Default`()
-                .image(image)
+                .image(image.handle)
                 .viewType(VK_IMAGE_VIEW_TYPE_2D)
-                .format(format)
+                .format(image.format)
                 .components(componentMapping)
                 .subresourceRange(subResourceRange)
             val pImageView = stack.callocLong(1)

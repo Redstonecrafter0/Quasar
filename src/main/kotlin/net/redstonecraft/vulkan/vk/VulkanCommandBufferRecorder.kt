@@ -3,15 +3,8 @@ package net.redstonecraft.vulkan.vk
 import net.redstonecraft.vulkan.util.Color
 import net.redstonecraft.vulkan.vk.data.BufferCopyLocations
 import org.lwjgl.system.MemoryStack
+import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
-import org.lwjgl.vulkan.VkBufferCopy
-import org.lwjgl.vulkan.VkClearColorValue
-import org.lwjgl.vulkan.VkClearValue
-import org.lwjgl.vulkan.VkExtent2D
-import org.lwjgl.vulkan.VkOffset2D
-import org.lwjgl.vulkan.VkRect2D
-import org.lwjgl.vulkan.VkRenderPassBeginInfo
-import org.lwjgl.vulkan.VkViewport
 import kotlin.math.min
 
 class VulkanCommandBufferRecorder internal constructor(private val commandBuffer: VulkanCommandBuffer) {
@@ -183,6 +176,143 @@ class VulkanCommandBufferRecorder internal constructor(private val commandBuffer
         copyRegions: List<BufferCopyLocations> = listOf(BufferCopyLocations(0, 0, buffer.size))
     ) {
         copyBuffer(buffer, buffer.backingBuffer, copyRegions)
+    }
+
+    class ImageCopyBuilder(private val stack: MemoryStack) {
+
+        internal val regions = mutableListOf<VkImageCopy>()
+
+        fun region(
+            extent: VkExtent3D,
+            srcOffset: VkOffset3D = VkOffset3D.calloc(stack).x(0).y(0).z(0),
+            dstOffset: VkOffset3D = VkOffset3D.calloc(stack).x(0).y(0).z(0)
+        ) {
+            VkImageCopy.calloc(stack)
+                .srcSubresource(
+                    VkImageSubresourceLayers.calloc(stack)
+                        .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .baseArrayLayer(0)
+                        .layerCount(1)
+                        .mipLevel(0)
+                )
+                .dstSubresource(
+                    VkImageSubresourceLayers.calloc(stack)
+                        .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .baseArrayLayer(0)
+                        .layerCount(1)
+                        .mipLevel(0)
+                )
+                .srcOffset(srcOffset)
+                .dstOffset(dstOffset)
+                .extent(extent)
+        }
+    }
+
+    fun copyImage(srcImage: VulkanImage, dstImage: VulkanImage, block: ImageCopyBuilder.() -> Unit = { region(srcImage.extent) }) {
+        MemoryStack.stackPush().use { stack ->
+            val builder = ImageCopyBuilder(stack)
+            builder.block()
+            val pRegions = VkImageCopy.calloc(builder.regions.size, stack)
+            for (i in builder.regions) {
+                pRegions.put(i)
+            }
+            pRegions.flip()
+            vkCmdCopyImage(commandBuffer.handle, srcImage.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, pRegions)
+        }
+    }
+
+    class ImageBlitBuilder(private val stack: MemoryStack) {
+
+        internal val regions = mutableListOf<VkImageBlit>()
+
+        fun region(
+            srcSize: VkOffset3D,
+            dstSize: VkOffset3D,
+            dstOffset: VkOffset3D = VkOffset3D.calloc(stack).x(0).y(0).z(0),
+            srcOffset: VkOffset3D = VkOffset3D.calloc(stack).x(0).y(0).z(0)
+        ) {
+            val pSrcOffsets = VkOffset3D.calloc(2, stack)
+                .put(srcOffset)
+                .put(srcSize)
+                .flip()
+            val pDstOffsets = VkOffset3D.calloc(2, stack)
+                .put(dstOffset)
+                .put(dstSize)
+                .flip()
+            VkImageBlit.calloc(stack)
+                .srcSubresource(
+                    VkImageSubresourceLayers.calloc(stack)
+                        .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .baseArrayLayer(0)
+                        .layerCount(1)
+                        .mipLevel(0)
+                )
+                .dstSubresource(
+                    VkImageSubresourceLayers.calloc(stack)
+                        .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .baseArrayLayer(0)
+                        .layerCount(1)
+                        .mipLevel(0)
+                )
+                .srcOffsets(pSrcOffsets)
+                .dstOffsets(pDstOffsets)
+        }
+    }
+
+    fun blitImage(
+        srcImage: VulkanImage,
+        dstImage: VulkanImage,
+        linear: Boolean = true,
+        block: ImageBlitBuilder.() -> Unit = {
+            region(
+                VkOffset3D.calloc(MemoryStack.stackGet())
+                    .x(srcImage.extent.width())
+                    .y(srcImage.extent.height())
+                    .z(1),
+                VkOffset3D.calloc(MemoryStack.stackGet())
+                    .x(dstImage.extent.width())
+                    .y(dstImage.extent.height())
+                    .z(1)
+            )
+        }
+    ) {
+        MemoryStack.stackPush().use { stack ->
+            val builder = ImageBlitBuilder(stack)
+            builder.block()
+            val pRegions = VkImageBlit.calloc(builder.regions.size, stack)
+            for (i in builder.regions) {
+                pRegions.put(i)
+            }
+            pRegions.flip()
+            vkCmdBlitImage(commandBuffer.handle, srcImage.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, pRegions, if (linear) VK_FILTER_LINEAR else VK_FILTER_NEAREST)
+        }
+    }
+
+    fun imageMemoryBarrier(image: VulkanImage, newLayout: Int) { // this is temporary. TODO: overhaul memory barriers in general
+        MemoryStack.stackPush().use { stack ->
+            val imageBarrier = VkImageMemoryBarrier2.calloc(stack).`sType$Default`()
+                .srcStageMask(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT)
+                .srcAccessMask(VK_ACCESS_2_MEMORY_WRITE_BIT)
+                .dstStageMask(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT)
+                .dstAccessMask(VK_ACCESS_2_MEMORY_WRITE_BIT or VK_ACCESS_2_MEMORY_READ_BIT)
+                .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                .newLayout(newLayout)
+                .subresourceRange(
+                    VkImageSubresourceRange.calloc(stack)
+                        .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .baseArrayLayer(0)
+                        .layerCount(VK_REMAINING_MIP_LEVELS)
+                        .baseMipLevel(0)
+                        .layerCount(VK_REMAINING_ARRAY_LAYERS)
+                )
+                .image(image.handle)
+            val pImageBarriers = VkImageMemoryBarrier2.calloc(1, stack)
+                .put(imageBarrier)
+                .flip()
+            val depInfo = VkDependencyInfo.calloc(stack).`sType$Default`()
+                .pImageMemoryBarriers(pImageBarriers)
+            vkCmdPipelineBarrier2(commandBuffer.handle, depInfo)
+        }
     }
 
 }

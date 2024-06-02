@@ -4,6 +4,7 @@ import net.redstonecraft.vulkan.spvc.SPIRVCompiler
 import net.redstonecraft.vulkan.vk.enums.InputRate
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
+import net.redstonecraft.vulkan.vma.buildVmaAllocator
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSwapchain.*
@@ -47,6 +48,8 @@ class VulkanContext(
     val physicalDevice = instance.getBestPhysicalDevice(surface, deviceExtensions.toSet())
 
     val device = physicalDevice.buildLogicalDevice()
+
+    val allocator = device.buildVmaAllocator()
 
 
 
@@ -240,6 +243,7 @@ class VulkanContext(
         shaderCompiler.close()
         renderPass.close()
         swapChain.close()
+        allocator.close()
         device.close()
         surface.close()
         physicalDevice.close()

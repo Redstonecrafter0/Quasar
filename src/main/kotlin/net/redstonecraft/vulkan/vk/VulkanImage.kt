@@ -1,11 +1,19 @@
 package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import org.lwjgl.vulkan.VkExtent3D
 
-class VulkanImage internal constructor(override val handle: Long): IHandle<Long> {
+open class VulkanImage internal constructor(
+    handle: Long,
+    val format: Int,
+    val extent: VkExtent3D,
+) : IHandle<Long> {
+
+    final override var handle: Long = handle
+        protected set
 
     override fun close() {
-        TODO("Not yet implemented")
+        // in case of an image allocated by the swap chain nothing has to be done
     }
 
 }

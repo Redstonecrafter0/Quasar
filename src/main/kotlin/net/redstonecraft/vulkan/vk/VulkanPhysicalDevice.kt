@@ -6,12 +6,11 @@ import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkExtensionProperties
 import org.lwjgl.vulkan.VkPhysicalDevice
-import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties
 import org.lwjgl.vulkan.VkPhysicalDeviceProperties
 import java.nio.ByteBuffer
 
-class VulkanPhysicalDevice internal constructor(instance: VulkanInstance, val surface: VulkanSurface?, deviceHandle: Long, val extensions: List<String>): IHandle<VkPhysicalDevice> {
+class VulkanPhysicalDevice internal constructor(val instance: VulkanInstance, val surface: VulkanSurface?, deviceHandle: Long, val extensions: List<String>): IHandle<VkPhysicalDevice> {
 
     override val handle = VkPhysicalDevice(deviceHandle, instance.handle)
     val queueFamilyIndices = VulkanQueueFamilyIndices(this, surface)

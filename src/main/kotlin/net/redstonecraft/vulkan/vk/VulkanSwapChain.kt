@@ -5,6 +5,7 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VkExtent3D
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
 import kotlin.math.min
 
@@ -24,6 +25,8 @@ class VulkanSwapChain private constructor(
     override val handle: Long
     val images: List<VulkanImage>
     val imageViews: List<VulkanImageView>
+
+    private val imageExtent: VkExtent3D
 
     init {
         MemoryStack.stackPush().use { stack ->
@@ -89,12 +92,20 @@ class VulkanSwapChain private constructor(
             val pImages = stack.callocLong(pImageCount.get(0))
             vkGetSwapchainImagesKHR(device.handle, handle, pImageCount, pImages)
 
-            images = (0 until pImages.capacity()).map { VulkanImage(pImages.get(it)) }
+            imageExtent = VkExtent3D.calloc()
+                .width(device.physicalDevice.surfaceCapabilities.extent.width())
+                .height(device.physicalDevice.surfaceCapabilities.extent.height())
+                .depth(1)
+
+            images = (0 until pImages.capacity()).map {
+                VulkanImage(
+                    pImages.get(it),
+                    device.physicalDevice.surfaceFormat.format,
+                    imageExtent
+                )
+            }
             imageViews = images.map {
-                device.buildImageView {
-                    image = it.handle
-                    format = device.physicalDevice.surfaceFormat.format
-                }
+                device.buildImageView(it)
             }
         }
     }
@@ -116,6 +127,7 @@ class VulkanSwapChain private constructor(
 
     override fun close() {
         imageViews.forEach { it.close() }
+        imageExtent.free()
         vkDestroySwapchainKHR(device.handle, handle, null)
     }
 

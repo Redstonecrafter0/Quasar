@@ -9,10 +9,11 @@ lwjgl-vulkan = { module = "org.lwjgl:lwjgl-vulkan", version.ref = "lwjgl" }
 lwjgl-shaderc =  { module = "org.lwjgl:lwjgl-shaderc", version.ref = "lwjgl" }
 lwjgl-glfw = { module = "org.lwjgl:lwjgl-glfw", version.ref = "lwjgl" }
 lwjgl-jemalloc = { module = "org.lwjgl:lwjgl-jemalloc", version.ref = "lwjgl" }
+lwjgl-vma = { module = "org.lwjgl:lwjgl-vma", version.ref = "lwjgl" }
 joml = { module = "org.joml:joml", version.ref = "joml" }
 
 [bundles]
-lwjgl = [ "lwjgl-core", "lwjgl-vulkan", "lwjgl-shaderc", "lwjgl-glfw", "lwjgl-jemalloc" ]
+lwjgl = [ "lwjgl-core", "lwjgl-vulkan", "lwjgl-shaderc", "lwjgl-glfw", "lwjgl-jemalloc", "lwjgl-vma" ]
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

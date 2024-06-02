@@ -81,10 +81,8 @@ class VulkanLogicalDevice internal constructor(val physicalDevice: VulkanPhysica
         return builder.build()
     }
 
-    fun buildImageView(block: VulkanImageView.Builder.() -> Unit): VulkanImageView {
-        val builder = VulkanImageView.Builder(this)
-        builder.block()
-        return builder.build()
+    fun buildImageView(image: VulkanImage): VulkanImageView {
+        return VulkanImageView(this, image)
     }
 
     fun buildFramebuffer(block: VulkanFramebuffer.Builder.() -> Unit): VulkanFramebuffer {
