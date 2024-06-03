@@ -1,4 +1,4 @@
-package net.redstonecraft.vulkan.vk.interfaces
+package net.redstonecraft.vulkan.interfaces
 
 import java.io.Closeable
 

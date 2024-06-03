@@ -1,4 +1,4 @@
-package net.redstonecraft.vulkan.spvc
+package net.redstonecraft.vulkan.shaderc
 
 import org.lwjgl.util.shaderc.Shaderc.*
 import org.lwjgl.vulkan.VK13.*

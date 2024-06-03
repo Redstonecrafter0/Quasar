@@ -1,7 +1,7 @@
 package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.vk.enums.VulkanAttachmentLoadOp
-import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import net.redstonecraft.vulkan.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.KHRSwapchain.*

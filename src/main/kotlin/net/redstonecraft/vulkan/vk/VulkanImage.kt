@@ -1,6 +1,6 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import net.redstonecraft.vulkan.interfaces.IHandle
 import org.lwjgl.vulkan.VkExtent3D
 
 open class VulkanImage internal constructor(

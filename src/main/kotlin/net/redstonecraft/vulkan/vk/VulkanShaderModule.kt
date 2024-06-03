@@ -1,8 +1,8 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.spvc.SPIRVCompiler
-import net.redstonecraft.vulkan.spvc.ShaderType
-import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import net.redstonecraft.vulkan.shaderc.SPIRVCompiler
+import net.redstonecraft.vulkan.shaderc.ShaderType
+import net.redstonecraft.vulkan.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo

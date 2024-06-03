@@ -1,7 +1,7 @@
 package net.redstonecraft.vulkan.vma
 
 import net.redstonecraft.vulkan.vk.VulkanLogicalDevice
-import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import net.redstonecraft.vulkan.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.util.vma.Vma.*
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo

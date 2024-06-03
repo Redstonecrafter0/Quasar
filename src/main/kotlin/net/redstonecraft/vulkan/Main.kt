@@ -1,6 +1,8 @@
 package net.redstonecraft.vulkan
 
-import net.redstonecraft.vulkan.spvc.GLSLCompiler
+import net.redstonecraft.vulkan.shaderc.GLSLCompiler
+import net.redstonecraft.vulkan.shaderc.ShaderType
+import net.redstonecraft.vulkan.spvc.SpvcContext
 import net.redstonecraft.vulkan.vfs.ResourceVFS
 import net.redstonecraft.vulkan.vk.VulkanContext
 import org.lwjgl.glfw.GLFW.*
@@ -21,6 +23,11 @@ fun main() {
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
     val window = glfwCreateWindow(width, height, "Vulkan Test", 0, 0)
+
+    println(compiler.compileToText("test/vert.glsl", ShaderType.VERTEX))
+
+    val spirv = compiler.compile("test/vert.glsl", ShaderType.VERTEX)
+    val spvc = SpvcContext().parse(spirv)
 
     val vulkan = VulkanContext(window, compiler, "test", "Vulkan Test", Triple(0, 1, 0))
 

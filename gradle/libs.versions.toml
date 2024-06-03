@@ -5,15 +5,16 @@ joml = "1.10.5"
 
 [libraries]
 lwjgl-core = { module = "org.lwjgl:lwjgl", version.ref = "lwjgl" }
-lwjgl-vulkan = { module = "org.lwjgl:lwjgl-vulkan", version.ref = "lwjgl" }
-lwjgl-shaderc =  { module = "org.lwjgl:lwjgl-shaderc", version.ref = "lwjgl" }
 lwjgl-glfw = { module = "org.lwjgl:lwjgl-glfw", version.ref = "lwjgl" }
 lwjgl-jemalloc = { module = "org.lwjgl:lwjgl-jemalloc", version.ref = "lwjgl" }
+lwjgl-vulkan = { module = "org.lwjgl:lwjgl-vulkan", version.ref = "lwjgl" }
 lwjgl-vma = { module = "org.lwjgl:lwjgl-vma", version.ref = "lwjgl" }
+lwjgl-shaderc =  { module = "org.lwjgl:lwjgl-shaderc", version.ref = "lwjgl" }
+lwjgl-spvc =  { module = "org.lwjgl:lwjgl-spvc", version.ref = "lwjgl" }
 joml = { module = "org.joml:joml", version.ref = "joml" }
 
 [bundles]
-lwjgl = [ "lwjgl-core", "lwjgl-vulkan", "lwjgl-shaderc", "lwjgl-glfw", "lwjgl-jemalloc", "lwjgl-vma" ]
+lwjgl = [ "lwjgl-core", "lwjgl-glfw", "lwjgl-jemalloc", "lwjgl-vulkan", "lwjgl-vma", "lwjgl-shaderc", "lwjgl-spvc" ]
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

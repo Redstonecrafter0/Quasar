@@ -1,30 +1,34 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import net.redstonecraft.vulkan.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkExtent3D
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
+import kotlin.math.max
 import kotlin.math.min
 
 class VulkanSwapChain private constructor(
     val device: VulkanLogicalDevice,
-    forceRenderAllPixels: Boolean
+    forceRenderAllPixels: Boolean,
+    maxFramesInFlight: Int
 ): IHandle<Long> {
 
     class Builder internal constructor(private val device: VulkanLogicalDevice) {
         var forceRenderAllPixels: Boolean = false
+        var maxFramesInFlight = 2
 
         internal fun build(): VulkanSwapChain {
-            return VulkanSwapChain(device, forceRenderAllPixels)
+            return VulkanSwapChain(device, forceRenderAllPixels, maxFramesInFlight)
         }
     }
 
     override val handle: Long
     val images: List<VulkanImage>
     val imageViews: List<VulkanImageView>
+    val imageCount: Int
 
     private val imageExtent: VkExtent3D
 
@@ -48,13 +52,14 @@ class VulkanSwapChain private constructor(
             if (device.physicalDevice.queueFamilyIndices.presentFamily == null) {
                 throw VulkanException("Can't create swap chain without a present family")
             }
-            var imageCount = device.physicalDevice.surfaceCapabilities.handle.minImageCount() + 1
+            var tmpImageCount = device.physicalDevice.surfaceCapabilities.handle.minImageCount() + 1
             if (device.physicalDevice.surfaceCapabilities.handle.maxImageCount() > 0) {
-                imageCount = min(imageCount, device.physicalDevice.surfaceCapabilities.handle.maxImageCount())
+                tmpImageCount = min(max(tmpImageCount, maxFramesInFlight + 1), device.physicalDevice.surfaceCapabilities.handle.maxImageCount())
             }
+            imageCount = tmpImageCount - 1 // adjust for driver image. this would otherwise lock the application
             val createInfo = VkSwapchainCreateInfoKHR.calloc(stack).`sType$Default`()
                 .surface(device.physicalDevice.surface.handle)
-                .minImageCount(imageCount)
+                .minImageCount(tmpImageCount)
                 .imageFormat(device.physicalDevice.surfaceFormat.format)
                 .imageColorSpace(device.physicalDevice.surfaceFormat.colorSpace)
                 .imageExtent(device.physicalDevice.surfaceCapabilities.extent)

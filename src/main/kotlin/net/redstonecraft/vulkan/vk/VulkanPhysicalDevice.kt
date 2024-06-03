@@ -1,6 +1,6 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.vk.interfaces.IHandle
+import net.redstonecraft.vulkan.interfaces.IHandle
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK13.*
@@ -10,7 +10,8 @@ import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties
 import org.lwjgl.vulkan.VkPhysicalDeviceProperties
 import java.nio.ByteBuffer
 
-class VulkanPhysicalDevice internal constructor(val instance: VulkanInstance, val surface: VulkanSurface?, deviceHandle: Long, val extensions: List<String>): IHandle<VkPhysicalDevice> {
+class VulkanPhysicalDevice internal constructor(val instance: VulkanInstance, val surface: VulkanSurface?, deviceHandle: Long, val extensions: List<String>):
+    IHandle<VkPhysicalDevice> {
 
     override val handle = VkPhysicalDevice(deviceHandle, instance.handle)
     val queueFamilyIndices = VulkanQueueFamilyIndices(this, surface)

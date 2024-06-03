@@ -1,6 +1,6 @@
 package net.redstonecraft.vulkan.vk
 
-import net.redstonecraft.vulkan.spvc.SPIRVCompiler
+import net.redstonecraft.vulkan.shaderc.SPIRVCompiler
 import net.redstonecraft.vulkan.vk.enums.InputRate
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
@@ -30,7 +30,8 @@ class VulkanContext(
         val swapChainSemaphore: VulkanSemaphore,
         val renderSemaphore: VulkanSemaphore,
         val renderFence: VulkanFence,
-        val commandBuffer: VulkanCommandBuffer
+        val commandBuffer: VulkanCommandBuffer,
+        var imageIndex: Int? = null
     )
 
     val instance = VulkanInstance.build {
@@ -133,6 +134,7 @@ class VulkanContext(
 
     var swapChain = device.buildSwapChain {
         this.forceRenderAllPixels = this@VulkanContext.forceRenderAllPixels
+        this.maxFramesInFlight = this@VulkanContext.maxFramesInFlight
     }
 
     val framebuffers = swapChain.imageViews.map {
@@ -144,11 +146,11 @@ class VulkanContext(
     }
 
     val frames = buildList {
-        repeat(maxFramesInFlight) {
+        repeat(swapChain.imageCount) {
             add(Frame(
                 device.buildSemaphore(),
                 device.buildSemaphore(),
-                device.buildFence(),
+                device.buildFence { isSignalled = false },
                 commandPool.buildCommandBuffer()
             ))
         }
@@ -180,37 +182,30 @@ class VulkanContext(
         }
     }
 
-    var firstFrame = true
-
     fun drawFrame() {
         frameI++
-        if (frameI >= maxFramesInFlight) {
-            frameI = 0
+        frameI %= swapChain.imageCount
+        val renderFrame = frames[frameI]
+        val presentFrame = frames[(frameI + 1) % swapChain.imageCount]
+        if (presentFrame.imageIndex != null) {
+            presentFrame.renderFence.waitForFence()
+            presentFrame.renderFence.reset()
         }
-        frameI %= maxFramesInFlight
-        val frame = frames[frameI]
-        val nextFrame = frames[(frameI + 1) % maxFramesInFlight]
-        nextFrame.renderFence.waitForFence()
-        nextFrame.renderFence.reset()
-        val imageIndex = swapChain.acquireNextImage(nextFrame.swapChainSemaphore)
-        if (imageIndex == null) {
+        renderFrame.imageIndex = swapChain.acquireNextImage(renderFrame.swapChainSemaphore)
+        if (renderFrame.imageIndex == null) {
             recreateSwapChain()
             return
         }
-        nextFrame.commandBuffer.reset()
-        nextFrame.commandBuffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) {
-            renderPass(framebuffers[imageIndex]) {
+        renderFrame.commandBuffer.reset()
+        renderFrame.commandBuffer.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) {
+            renderPass(framebuffers[renderFrame.imageIndex!!]) {
                 extent = physicalDevice.surfaceCapabilities!!.extent
                 graphicsPipeline {
-//                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
-//                    scissorExtent = physicalDevice.surfaceCapabilities.extent
                     count = 3
                     indexBuffer = this@VulkanContext.indexBuffer.backingBuffer
                     bindVertexBuffer(vertexBuffer)
                 }
                 graphicsPipeline {
-//                    viewportSize = physicalDevice.surfaceCapabilities.extent.width().toFloat() to physicalDevice.surfaceCapabilities.extent.height().toFloat()
-//                    scissorExtent = physicalDevice.surfaceCapabilities.extent
                     count = 3
                     first = 3
                     indexBuffer = this@VulkanContext.indexBuffer.backingBuffer
@@ -218,11 +213,9 @@ class VulkanContext(
                 }
             }
         }
-        device.graphicsQueue.submit(listOf(nextFrame.commandBuffer), listOf(nextFrame.swapChainSemaphore), listOf(nextFrame.renderSemaphore), nextFrame.renderFence)
-        if (!firstFrame && device.presentQueue.present(swapChain, imageIndex, listOf(frame.renderSemaphore))) {
+        device.graphicsQueue.submit(listOf(renderFrame.commandBuffer), listOf(renderFrame.swapChainSemaphore), listOf(renderFrame.renderSemaphore), renderFrame.renderFence)
+        if (presentFrame.imageIndex != null && device.presentQueue.present(swapChain, presentFrame.imageIndex!!, listOf(presentFrame.renderSemaphore))) {
             recreateSwapChain()
-        } else {
-            firstFrame = false
         }
     }
 

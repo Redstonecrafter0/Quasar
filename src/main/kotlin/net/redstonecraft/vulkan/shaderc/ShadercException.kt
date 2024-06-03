@@ -1,6 +1,6 @@
-package net.redstonecraft.vulkan.spvc
+package net.redstonecraft.vulkan.shaderc
 
-class ShaderException(message: String?, ret: Int? = null): Exception(transformMessage(message, ret)) {
+class ShadercException(message: String?, ret: Int? = null): Exception(transformMessage(message, ret)) {
 
     companion object {
 
