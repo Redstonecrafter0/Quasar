@@ -4,8 +4,8 @@ plugins {
     alias(libs.plugins.kotlin)
 }
 
-group = "net.redstonecraft.vulkan"
-version = "1.0-SNAPSHOT"
+group = "dev.redstones.quasar"
+version = "0.1.0"
 
 repositories {
     mavenCentral()

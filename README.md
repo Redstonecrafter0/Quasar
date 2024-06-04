@@ -1,10 +1,19 @@
-# VulkanHelper
+# Quasar
 
-This repo is intended for me to learn Vulkan and to build a helper library around it
-which I will use extensively throughout my future projects.
+This repo is currently intended for me to learn Vulkan.
+This project was originally intended to become a partial higher level Vulkan wrapper however goals shifted
+and now this repo will become a GUI library called Quasar that also provides a partial higher level Vulkan wrapper
+and later also support other technologies and platforms.
+I will use this project extensively throughout my future projects.
 
-When this repo becomes a fully functional library it will still not be 1.0 so that
+The code is in a very early state. There are TODOs all over the place.
+Only use this if you want to test something and know what you're doing.
+Don't use this for any project (either production or prototyping).
+
+When the code becomes a fully functional library it will still not be 1.0 so that
 there is enough time to figure out what parts can be set to common defaults and what needs more granular control.
+
+The text below is just temporary important/useful notes that will be moved to a proper documentation when ready.
 
 ## GLSL Naming Convention
 This library can optionally infer the vertex attribute layout from the SPIR-V or GLSL shader code.

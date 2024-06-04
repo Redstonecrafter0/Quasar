@@ -1,1 +1,1 @@
-rootProject.name = "VulkanHelper"
+rootProject.name = "Quasar"
