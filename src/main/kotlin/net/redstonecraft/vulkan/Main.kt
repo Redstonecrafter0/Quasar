@@ -24,11 +24,6 @@ fun main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
     val window = glfwCreateWindow(width, height, "Vulkan Test", 0, 0)
 
-    println(compiler.compileToText("test/vert.glsl", ShaderType.VERTEX))
-
-    val spirv = compiler.compile("test/vert.glsl", ShaderType.VERTEX)
-    val spvc = SpvcContext().parse(spirv)
-
     val vulkan = VulkanContext(window, compiler, "test", "Vulkan Test", Triple(0, 1, 0))
 
     var time = System.nanoTime()

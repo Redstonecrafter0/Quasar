@@ -7,14 +7,16 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 import org.lwjgl.vulkan.VkShaderModuleCreateInfo
+import java.nio.ByteBuffer
 
-open class VulkanShaderModule internal constructor(val device: VulkanLogicalDevice, shaderCompiler: SPIRVCompiler, path: String, private val type: ShaderType): IHandle<Long> {
+open class VulkanShaderModule internal constructor(val device: VulkanLogicalDevice, val shaderCompiler: SPIRVCompiler, path: String, private val type: ShaderType): IHandle<Long> {
 
     final override val handle: Long
+    val bytecode: ByteBuffer
 
     init {
         MemoryStack.stackPush().use { stack ->
-            val bytecode = shaderCompiler.compile(path, type)
+            bytecode = shaderCompiler.compile(path, type)
             val createInfo = VkShaderModuleCreateInfo.calloc(stack).`sType$Default`()
                 .pCode(bytecode)
             val pShaderModule = stack.callocLong(1)
@@ -23,7 +25,6 @@ open class VulkanShaderModule internal constructor(val device: VulkanLogicalDevi
                 throw VulkanException("vkCreateShaderModule failed", ret)
             }
             handle = pShaderModule.get(0)
-            shaderCompiler.free(bytecode)
         }
     }
 
@@ -36,6 +37,7 @@ open class VulkanShaderModule internal constructor(val device: VulkanLogicalDevi
     }
 
     override fun close() {
+        shaderCompiler.free(bytecode)
         vkDestroyShaderModule(device.handle, handle, null)
     }
 

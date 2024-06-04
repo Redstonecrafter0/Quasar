@@ -1,11 +1,11 @@
-#version 450
+#version 460
 
-in vec2 aPos;
-in vec3 aColor;
+in vec2 vPos;
+in vec3 vColor;
 
 out vec3 fragColor;
 
 void main() {
-    gl_Position = vec4(aPos, 0.0, 1.0);
-    fragColor = aColor;
+    gl_Position = vec4(vPos, 0.0, 1.0);
+    fragColor = vColor;
 }

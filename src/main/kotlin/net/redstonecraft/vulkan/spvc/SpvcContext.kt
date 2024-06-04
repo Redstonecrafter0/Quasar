@@ -24,16 +24,15 @@ class SpvcContext: IHandle<Long> {
         }
     }
 
-    fun parse(spirv: ByteBuffer) {
-        MemoryStack.stackPush().use { stack ->
+    fun buildCompiler(spirv: ByteBuffer): SpvcCompiler {
+        return MemoryStack.stackPush().use { stack ->
             val spirvInt = spirv.asIntBuffer()
             val pIr = stack.callocPointer(1)
             val ret = spvc_context_parse_spirv(handle, spirvInt, spirvInt.remaining().toLong(), pIr)
             if (ret != SPVC_SUCCESS) {
                 throw SpvcException("spvc_context_parse_spirv failed", ret)
             }
-            val compiler = SpvcCompiler(this, pIr.get(0)) // pIr gets owned by the compiler now
-            compiler.createResources().printResources()
+            SpvcCompiler(this, pIr.get(0)) // pIr gets owned by the compiler now
         }
     }
 

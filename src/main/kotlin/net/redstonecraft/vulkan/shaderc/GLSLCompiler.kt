@@ -19,6 +19,7 @@ class GLSLCompiler(val vfs: VirtualFileSystem): SPIRVCompiler, IHandle<Long> {
     init {
         shaderc_compile_options_set_include_callbacks(compileOptions, ShadercIncludeResolver(), ShadercIncludeResultReleaser(), 0)
         shaderc_compile_options_set_source_language(compileOptions, shaderc_source_language_glsl)
+//        shaderc_compile_options_set_optimization_level(compileOptions, shaderc_optimization_level_performance) // removes variable names fetched by spirv cross. this prevents detecting the naming convention used for instancing
         shaderc_compile_options_set_auto_map_locations(compileOptions, true)
         // TODO: shaderc_compile_options_set_auto_bind_uniforms()
     }

@@ -1,7 +1,7 @@
 package net.redstonecraft.vulkan.vk
 
 import net.redstonecraft.vulkan.shaderc.SPIRVCompiler
-import net.redstonecraft.vulkan.vk.enums.InputRate
+import net.redstonecraft.vulkan.spvc.inferVertexLayout
 import net.redstonecraft.vulkan.vk.enums.VulkanCulling
 import net.redstonecraft.vulkan.vk.enums.VulkanPrimitive
 import net.redstonecraft.vulkan.vma.buildVmaAllocator
@@ -80,10 +80,11 @@ class VulkanContext(
 
             colorAttachmentRef(present)
 
-            binding(0, 5 * Float.SIZE_BYTES, InputRate.VERTEX) {
-                attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
-                attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * 4)
-            }
+            inferVertexLayout()
+//            binding(0, 5 * Float.SIZE_BYTES, InputRate.VERTEX) {
+//                attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
+//                attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * Float.SIZE_BYTES)
+//            }
         }
         graphicsSubpass {
             extent = physicalDevice.surfaceCapabilities!!.extent
@@ -96,10 +97,11 @@ class VulkanContext(
 
             colorAttachmentRef(present)
 
-            binding(0, 5 * Float.SIZE_BYTES, InputRate.VERTEX) {
-                attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
-                attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * 4)
-            }
+            inferVertexLayout()
+//            binding(0, 5 * Float.SIZE_BYTES, InputRate.VERTEX) {
+//                attribute(0, VK_FORMAT_R32G32_SFLOAT, 0)
+//                attribute(1, VK_FORMAT_R32G32B32_SFLOAT, 2 * Float.SIZE_BYTES)
+//            }
         }
     }
 
